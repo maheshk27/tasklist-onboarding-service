@@ -68,7 +68,13 @@ export class AuthController {
                 firstName: { type: 'string', example: 'John' },
                 lastName: { type: 'string', example: 'Doe' },
                 emailId: { type: 'string', example: 'john.doe@example.com' },
-                roleName: { type: 'string', example: 'User' },
+                role: {
+                  type: 'object',
+                  properties: {
+                    roleId: { type: 'number', example: 1 },
+                    roleName: { type: 'string', example: 'Admin' }
+                  }
+                },
               },
             },
           },
@@ -167,7 +173,13 @@ export class AuthController {
                 firstName: { type: 'string', example: 'John' },
                 lastName: { type: 'string', example: 'Doe' },
                 emailId: { type: 'string', example: 'john.doe@example.com' },
-                roleName: { type: 'string', example: 'User' },
+                role: {
+                  type: 'object',
+                  properties: {
+                    roleId: { type: 'number', example: 1 },
+                    roleName: { type: 'string', example: 'Admin' }
+                  }
+                },
               },
             },
           },

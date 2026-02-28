@@ -7,13 +7,17 @@ import {
   Param, 
   Body, 
   HttpCode, 
-  HttpStatus 
+  HttpStatus,
+  UseGuards,
+  Req
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
-import { UserResponseCodes } from './constants/user-response-codes';
+import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { ApiResponse as StandardApiResponse } from '../../shared/interfaces/api-response.interface';
+import { RolesGuard, JwtAuthGuard } from '../../shared/guards';
+import { Roles } from '../../shared/decorators/roles.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -23,6 +27,7 @@ export class UserController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Get all users',
     description: 'Retrieves a list of all users in the system. Requires authentication with a valid JWT token.',
@@ -58,10 +63,15 @@ export class UserController {
               emailId: { type: 'string', example: 'john.doe@example.com' },
               mobile: { type: 'string', example: '+1234567890' },
               isActive: { type: 'boolean', example: true },
-              roleId: { type: 'number', example: 1 },
-              roleName: { type: 'string', example: 'Admin' },
               createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
               updatedAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
+              role: {
+                type: 'object',
+                properties: {
+                  roleId: { type: 'number', example: 1 },
+                  roleName: { type: 'string', example: 'Admin' }
+                }
+              },
             },
           },
           example: [
@@ -74,10 +84,12 @@ export class UserController {
               emailId: 'john.doe@example.com',
               mobile: '+1234567890',
               isActive: true,
-              roleId: 1,
-              roleName: 'Admin',
               createdAt: '2023-07-15T10:30:00.000Z',
               updatedAt: '2023-07-15T10:30:00.000Z',
+              role: {
+                roleId: 1,
+                roleName: 'Admin'
+              }
             },
             {
               userId: 2,
@@ -88,10 +100,12 @@ export class UserController {
               emailId: 'jane.smith@example.com',
               mobile: '+1987654321',
               isActive: true,
-              roleId: 2,
-              roleName: 'User',
               createdAt: '2023-07-15T10:30:00.000Z',
               updatedAt: '2023-07-15T10:30:00.000Z',
+              role: {
+                roleId: 2,
+                roleName: 'User'
+              }
             },
           ],
         },
@@ -181,10 +195,12 @@ export class UserController {
             emailId: 'john.doe@example.com',
             mobile: '+1234567890',
             isActive: true,
-            roleId: 1,
-            roleName: 'Admin',
             createdAt: '2023-07-15T10:30:00.000Z',
             updatedAt: '2023-07-15T10:30:00.000Z',
+            role: {
+              roleId: 1,
+              roleName: 'Admin'
+            }
           },
         },
       },
@@ -232,9 +248,11 @@ export class UserController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager')
   @ApiOperation({
     summary: 'Create a new user',
-    description: 'Creates a new user account with the provided information. Requires authentication with a valid JWT token.',
+    description: 'Creates a new user account with the provided information. Requires authentication with a valid JWT token. Only Admin and Manager roles can create users.',
   })
   @ApiBody({
     type: CreateUserDto,
@@ -299,10 +317,12 @@ export class UserController {
             emailId: 'alice.smith@example.com',
             mobile: '+1112223333',
             isActive: true,
-            roleId: 2,
-            roleName: 'User',
             createdAt: '2023-07-15T10:30:00.000Z',
             updatedAt: '2023-07-15T10:30:00.000Z',
+            role: {
+              roleId: 2,
+              roleName: 'User'
+            }
           },
         },
       },
@@ -372,9 +392,11 @@ export class UserController {
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager')
   @ApiOperation({
     summary: 'Update user by ID',
-    description: 'Updates an existing user account with the provided information. Requires authentication with a valid JWT token.',
+    description: 'Updates an existing user account with the provided information. Requires authentication with a valid JWT token. Only Admin and Manager roles can update users.',
   })
   @ApiParam({
     name: 'id',
@@ -440,10 +462,12 @@ export class UserController {
             emailId: 'john.newemail@example.com',
             mobile: '+1234567890',
             isActive: true,
-            roleId: 1,
-            roleName: 'Admin',
             createdAt: '2023-07-15T10:30:00.000Z',
             updatedAt: '2023-07-15T11:00:00.000Z',
+            role: {
+              roleId: 1,
+              roleName: 'Admin'
+            }
           },
         },
       },
@@ -494,9 +518,11 @@ export class UserController {
 
   @Post(':id/activate')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager')
   @ApiOperation({
     summary: 'Activate user by ID',
-    description: 'Activates a deactivated user account by setting isActive = true. Requires authentication with a valid JWT token.',
+    description: 'Activates a deactivated user account by setting isActive = true. Requires authentication with a valid JWT token. Only Admin and Manager roles can activate users.',
   })
   @ApiParam({
     name: 'id',
@@ -583,9 +609,11 @@ export class UserController {
 
   @Post(':id/deactivate')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager')
   @ApiOperation({
     summary: 'Deactivate user by ID',
-    description: 'Deactivates an active user account by setting isActive = false. Requires authentication with a valid JWT token.',
+    description: 'Deactivates an active user account by setting isActive = false. Requires authentication with a valid JWT token. Only Admin and Manager roles can deactivate users.',
   })
   @ApiParam({
     name: 'id',
@@ -668,5 +696,249 @@ export class UserController {
   })
   async deactivateUser(@Param('id') id: string): Promise<StandardApiResponse<null>> {
     return this.userService.deactivateUser(+id);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager')
+  @ApiOperation({
+    summary: 'Reset password for any user',
+    description: 'Resets the password for any user in the system. Requires authentication with a valid JWT token. Only Admin and Manager roles can reset passwords. No current password required.',
+  })
+  @ApiBody({
+    type: ResetPasswordDto,
+    description: 'Password reset data',
+    examples: {
+      example1: {
+        summary: 'Reset Password Example',
+        description: 'Example of password reset data',
+        value: {
+          userId: 1,
+          newPassword: 'newpassword123',
+          confirmPassword: 'newpassword123',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password reset successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+        },
+        code: {
+          type: 'string',
+          example: 'PASSWORD_RESET_SUCCESS',
+        },
+        message: {
+          type: 'string',
+          example: 'Password reset successfully',
+        },
+        data: {
+          type: 'null',
+          example: null,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'VALIDATION_ERROR' },
+        message: { type: 'string', example: 'Validation failed' },
+        errors: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              field: { type: 'string' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'User not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'USER_NOT_FOUND' },
+        message: { type: 'string', example: 'User details not available' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Missing or invalid JWT token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'UNAUTHORIZED' },
+        message: { type: 'string', example: 'Authentication required' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Insufficient permissions',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'FORBIDDEN' },
+        message: { type: 'string', example: 'Access denied. Required roles: Admin, Manager' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to reset password',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INTERNAL_ERROR' },
+        message: { type: 'string', example: 'Internal server error' },
+      },
+    },
+  })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<StandardApiResponse<null>> {
+    return this.userService.resetPassword(resetPasswordDto);
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Change own password',
+    description: 'Changes the password for the currently authenticated user. Requires authentication with a valid JWT token. Current password verification is required.',
+  })
+  @ApiBody({
+    type: ChangePasswordDto,
+    description: 'Password change data',
+    examples: {
+      example1: {
+        summary: 'Change Password Example',
+        description: 'Example of password change data',
+        value: {
+          currentPassword: 'currentpassword123',
+          newPassword: 'newpassword123',
+          confirmPassword: 'newpassword123',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password changed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+        },
+        code: {
+          type: 'string',
+          example: 'PASSWORD_CHANGE_SUCCESS',
+        },
+        message: {
+          type: 'string',
+          example: 'Password changed successfully',
+        },
+        data: {
+          type: 'null',
+          example: null,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid input data',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'VALIDATION_ERROR' },
+        message: { type: 'string', example: 'Validation failed' },
+        errors: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              field: { type: 'string' },
+              message: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'User not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'USER_NOT_FOUND' },
+        message: { type: 'string', example: 'User details not available' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Missing or invalid JWT token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'UNAUTHORIZED' },
+        message: { type: 'string', example: 'Authentication required' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Invalid current password',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INVALID_CURRENT_PASSWORD' },
+        message: { type: 'string', example: 'Current password is incorrect' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to change password',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INTERNAL_ERROR' },
+        message: { type: 'string', example: 'Internal server error' },
+      },
+    },
+  })
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto, @Req() req): Promise<StandardApiResponse<null>> {
+    // Get user ID from JWT token
+    const userId = req.user.userId;
+    return this.userService.changePassword(userId, changePasswordDto);
   }
 }

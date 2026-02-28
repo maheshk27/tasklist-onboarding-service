@@ -190,16 +190,25 @@ export class UserResponseDto {
   isActive: boolean;
 
   @ApiProperty({
-    description: 'Role ID assigned to the user',
-    example: 2,
+    description: 'Role information for the user',
+    type: 'object',
+    properties: {
+      roleId: {
+        type: 'number',
+        example: 2,
+        description: 'Role ID assigned to the user'
+      },
+      roleName: {
+        type: 'string',
+        example: 'User',
+        description: 'Role name assigned to the user'
+      }
+    }
   })
-  roleId: number;
-
-  @ApiProperty({
-    description: 'Role name assigned to the user',
-    example: 'User',
-  })
-  roleName: string;
+  role: {
+    roleId: number;
+    roleName: string;
+  };
 
   @ApiProperty({
     description: 'Date and time when the user record was created',

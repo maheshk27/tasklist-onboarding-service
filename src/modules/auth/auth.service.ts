@@ -71,8 +71,10 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           emailId: user.emailId,
-          roleId: adminRole.roleId,
-          roleName: adminRole.roleName,
+          role: {
+            roleId: adminRole.roleId,
+            roleName: adminRole.roleName,
+          },
         },
       };
 
@@ -113,8 +115,10 @@ export class AuthService {
           firstName: user.firstName,
           lastName: user.lastName,
           emailId: user.emailId,
-          roleId: user.role.roleId,
-          roleName: user.role.roleName,
+          role: {
+            roleId: user.role.roleId,
+            roleName: user.role.roleName,
+          },
         },
       };
 

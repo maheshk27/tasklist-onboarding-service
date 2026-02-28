@@ -54,5 +54,25 @@ export const UserResponseCodes = {
   USER_ALREADY_INACTIVE: {
     code: 'USER_ALREADY_INACTIVE',
     message: 'User is already inactive'
+  },
+  PASSWORD_MISMATCH: {
+    code: 'PASSWORD_MISMATCH',
+    message: 'New password and confirm password do not match'
+  },
+  PASSWORD_TOO_SHORT: {
+    code: 'PASSWORD_TOO_SHORT',
+    message: 'Password must be at least 6 characters long'
+  },
+  INVALID_CURRENT_PASSWORD: {
+    code: 'INVALID_CURRENT_PASSWORD',
+    message: 'Current password is incorrect'
+  },
+  PASSWORD_RESET_SUCCESS: {
+    code: 'PASSWORD_RESET_SUCCESS',
+    message: 'Password reset successfully'
+  },
+  PASSWORD_CHANGE_SUCCESS: {
+    code: 'PASSWORD_CHANGE_SUCCESS',
+    message: 'Password changed successfully'
   }
 };

@@ -119,16 +119,21 @@ export class AuthResponseDto {
         description: 'Email address of the user (optional)',
         nullable: true,
       },
-      roleId: {
-        type: 'number',
-        example: 1,
-        description: 'Uniqie identifier for Role',
-        nullable: false
-      },
-      roleName: {
-        type: 'string',
-        example: 'Admin',
-        description: 'Role assigned to the user',
+      role: {
+        type: 'object',
+        properties: {
+          roleId: {
+            type: 'number',
+            example: 1,
+            description: 'Unique identifier for Role',
+          },
+          roleName: {
+            type: 'string',
+            example: 'Admin',
+            description: 'Role assigned to the user',
+          },
+        },
+        description: 'Role information for the user',
       },
     },
   })
@@ -138,7 +143,9 @@ export class AuthResponseDto {
     firstName: string;
     lastName: string;
     emailId?: string;
-    roleId: number;
-    roleName: string;
+    role: {
+      roleId: number;
+      roleName: string;
+    };
   };
 }

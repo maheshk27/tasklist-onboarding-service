@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
+import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { User, Role } from 'tasklist-manager-database-core';
 import { ResponseBuilder } from '../../shared/utils/response-builder';
 import { UserResponseCodes } from './constants/user-response-codes';
@@ -31,10 +33,12 @@ export class UserService {
         emailId: user.emailId,
         mobile: user.mobile,
         isActive: user.isActive,
-        roleId: user.role.roleId,
-        roleName: user.role.roleName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        role: {
+          roleId: user.role.roleId,
+          roleName: user.role.roleName,
+        },
       }));
 
       return ResponseBuilder.success(userData, UserResponseCodes.USERS_RETRIEVED);
@@ -63,10 +67,12 @@ export class UserService {
         emailId: user.emailId,
         mobile: user.mobile,
         isActive: user.isActive,
-        roleId: user.role.roleId,
-        roleName: user.role.roleName,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        role: {
+          roleId: user.role.roleId,
+          roleName: user.role.roleName,
+        },
       };
 
       return ResponseBuilder.success(userData, UserResponseCodes.USER_RETRIEVED);
@@ -110,10 +116,12 @@ export class UserService {
         emailId: savedUser.emailId,
         mobile: savedUser.mobile,
         isActive: savedUser.isActive,
-        roleId: savedUser.role.roleId,
-        roleName: role.roleName,
         createdAt: savedUser.createdAt,
         updatedAt: savedUser.updatedAt,
+        role: {
+          roleId: savedUser.role.roleId,
+          roleName: role.roleName,
+        },
       };
 
       return ResponseBuilder.success(userDataResponse, UserResponseCodes.USER_CREATED);
@@ -158,10 +166,12 @@ export class UserService {
         emailId: updatedUser.emailId,
         mobile: updatedUser.mobile,
         isActive: updatedUser.isActive,
-        roleId: updatedUser.role.roleId,
-        roleName: updatedUser.role.roleName,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
+        role: {
+          roleId: updatedUser.role.roleId,
+          roleName: updatedUser.role.roleName,
+        },
       };
 
       return ResponseBuilder.success(userData, UserResponseCodes.USER_UPDATED);
@@ -213,6 +223,80 @@ export class UserService {
       return ResponseBuilder.success(null, UserResponseCodes.USER_DEACTIVATED);
     } catch (error) {
       return ResponseBuilder.internalError('Failed to deactivate user');
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<ApiResponse<null>> {
+    try {
+      const { userId, newPassword, confirmPassword } = resetPasswordDto;
+
+      // Validate password confirmation
+      if (newPassword !== confirmPassword) {
+        return ResponseBuilder.error(UserResponseCodes.PASSWORD_MISMATCH);
+      }
+
+      // Validate password length
+      if (newPassword.length < 6) {
+        return ResponseBuilder.error(UserResponseCodes.PASSWORD_TOO_SHORT);
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { userId },
+      });
+
+      if (!user) {
+        return ResponseBuilder.notFound('User');
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      
+      await this.userRepository.save(user);
+
+      return ResponseBuilder.success(null, UserResponseCodes.PASSWORD_RESET_SUCCESS);
+    } catch (error) {
+      return ResponseBuilder.internalError('Failed to reset password');
+    }
+  }
+
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<ApiResponse<null>> {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+      // Validate password confirmation
+      if (newPassword !== confirmPassword) {
+        return ResponseBuilder.error(UserResponseCodes.PASSWORD_MISMATCH);
+      }
+
+      // Validate password length
+      if (newPassword.length < 6) {
+        return ResponseBuilder.error(UserResponseCodes.PASSWORD_TOO_SHORT);
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { userId },
+      });
+
+      if (!user) {
+        return ResponseBuilder.notFound('User');
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return ResponseBuilder.error(UserResponseCodes.INVALID_CURRENT_PASSWORD);
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      
+      await this.userRepository.save(user);
+
+      return ResponseBuilder.success(null, UserResponseCodes.PASSWORD_CHANGE_SUCCESS);
+    } catch (error) {
+      return ResponseBuilder.internalError('Failed to change password');
     }
   }
 }
