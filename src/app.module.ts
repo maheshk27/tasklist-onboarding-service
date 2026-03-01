@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
+import { RoleModule } from './modules/role/role.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UserModule } from './modules/user/user.module';
     // Feature modules
     AuthModule,
     UserModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [AppService],

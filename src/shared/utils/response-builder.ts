@@ -1,4 +1,5 @@
 import { ApiResponse, ApiError, PaginationMeta } from '../interfaces/api-response.interface';
+import { BaseResponseCodes } from '../constants/response-codes';
 
 export class ResponseBuilder {
   /**
@@ -6,18 +7,22 @@ export class ResponseBuilder {
    */
   static success<T>(
     data: T, 
-    responseCode: { code: string; message: string } = { 
+    responseCode: { code: string; message: string; statusCode?: number } = { 
       code: 'SUCCESS', 
-      message: 'Operation completed successfully' 
+      message: 'Operation completed successfully',
+      statusCode: BaseResponseCodes.SUCCESS.statusCode
     },
     meta?: PaginationMeta
   ): ApiResponse<T> {
+    const statusCode = responseCode.statusCode || BaseResponseCodes.SUCCESS.statusCode;
+    
     return {
       success: true,
       code: responseCode.code,
       message: responseCode.message,
       data,
-      meta
+      meta,
+      statusCode
     };
   }
 
@@ -25,15 +30,18 @@ export class ResponseBuilder {
    * Build an error response
    */
   static error(
-    responseCode: { code: string; message: string },
+    responseCode: { code: string; message: string; statusCode?: number },
     errors?: ApiError[]
   ): ApiResponse<null> {
+    const statusCode = responseCode.statusCode || BaseResponseCodes.INTERNAL_ERROR.statusCode;
+    
     return {
       success: false,
       code: responseCode.code,
       message: responseCode.message,
       data: null,
-      errors
+      errors,
+      statusCode
     };
   }
 
@@ -47,7 +55,8 @@ export class ResponseBuilder {
     const message = customMessage || `${resource} not found`;
     return this.error({
       code: 'NOT_FOUND',
-      message
+      message,
+      statusCode: BaseResponseCodes.NOT_FOUND.statusCode
     });
   }
 
@@ -60,7 +69,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'VALIDATION_ERROR',
-      message: customMessage || 'Validation failed'
+      message: customMessage || 'Validation failed',
+      statusCode: BaseResponseCodes.VALIDATION_ERROR.statusCode
     }, errors);
   }
 
@@ -72,7 +82,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'CONFLICT',
-      message: customMessage || 'Resource already exists'
+      message: customMessage || 'Resource already exists',
+      statusCode: BaseResponseCodes.CONFLICT.statusCode
     });
   }
 
@@ -84,7 +95,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'UNAUTHORIZED',
-      message: customMessage || 'Authentication required'
+      message: customMessage || 'Authentication required',
+      statusCode: BaseResponseCodes.UNAUTHORIZED.statusCode
     });
   }
 
@@ -96,7 +108,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'FORBIDDEN',
-      message: customMessage || 'Access denied'
+      message: customMessage || 'Access denied',
+      statusCode: BaseResponseCodes.FORBIDDEN.statusCode
     });
   }
 
@@ -108,7 +121,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'INTERNAL_ERROR',
-      message: customMessage || 'Internal server error'
+      message: customMessage || 'Internal server error',
+      statusCode: BaseResponseCodes.INTERNAL_ERROR.statusCode
     });
   }
 
@@ -120,7 +134,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'BAD_REQUEST',
-      message: customMessage || 'Bad request'
+      message: customMessage || 'Bad request',
+      statusCode: BaseResponseCodes.BAD_REQUEST.statusCode
     });
   }
 
@@ -132,7 +147,8 @@ export class ResponseBuilder {
   ): ApiResponse<null> {
     return this.error({
       code: 'SERVICE_UNAVAILABLE',
-      message: customMessage || 'Service temporarily unavailable'
+      message: customMessage || 'Service temporarily unavailable',
+      statusCode: BaseResponseCodes.SERVICE_UNAVAILABLE.statusCode
     });
   }
 

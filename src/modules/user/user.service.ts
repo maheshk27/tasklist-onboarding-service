@@ -88,13 +88,13 @@ export class UserService {
       // Check if user already exists
       const existingUser = await this.userRepository.findOne({ where: { userName } });
       if (existingUser) {
-        return ResponseBuilder.error(UserResponseCodes.USERNAME_EXISTS);
+        return ResponseBuilder.conflict('Username already exists');
       }
 
       // Find role
       const role = await this.roleRepository.findOne({ where: { roleId: roleId } });
       if (!role) {
-        return ResponseBuilder.error(UserResponseCodes.ROLE_NOT_FOUND);
+        return ResponseBuilder.notFound('Role');
       }
 
       // Create user
@@ -188,10 +188,7 @@ export class UserService {
       }
 
       if (user.isActive) {
-        return ResponseBuilder.error(UserResponseCodes.USER_ALREADY_ACTIVE || {
-          code: 'USER_ALREADY_ACTIVE',
-          message: 'User is already active'
-        });
+        return ResponseBuilder.conflict('User is already active');
       }
 
       user.isActive = true;
@@ -211,10 +208,7 @@ export class UserService {
       }
 
       if (!user.isActive) {
-        return ResponseBuilder.error(UserResponseCodes.USER_ALREADY_INACTIVE || {
-          code: 'USER_ALREADY_INACTIVE',
-          message: 'User is already inactive'
-        });
+        return ResponseBuilder.conflict('User is already inactive');
       }
 
       user.isActive = false;
@@ -232,12 +226,12 @@ export class UserService {
 
       // Validate password confirmation
       if (newPassword !== confirmPassword) {
-        return ResponseBuilder.error(UserResponseCodes.PASSWORD_MISMATCH);
+        return ResponseBuilder.badRequest('Passwords do not match');
       }
 
       // Validate password length
       if (newPassword.length < 6) {
-        return ResponseBuilder.error(UserResponseCodes.PASSWORD_TOO_SHORT);
+        return ResponseBuilder.badRequest('Password must be at least 6 characters long');
       }
 
       const user = await this.userRepository.findOne({
@@ -266,12 +260,12 @@ export class UserService {
 
       // Validate password confirmation
       if (newPassword !== confirmPassword) {
-        return ResponseBuilder.error(UserResponseCodes.PASSWORD_MISMATCH);
+        return ResponseBuilder.badRequest('Passwords do not match');
       }
 
       // Validate password length
       if (newPassword.length < 6) {
-        return ResponseBuilder.error(UserResponseCodes.PASSWORD_TOO_SHORT);
+        return ResponseBuilder.badRequest('Password must be at least 6 characters long');
       }
 
       const user = await this.userRepository.findOne({
@@ -285,7 +279,7 @@ export class UserService {
       // Verify current password
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isCurrentPasswordValid) {
-        return ResponseBuilder.error(UserResponseCodes.INVALID_CURRENT_PASSWORD);
+        return ResponseBuilder.badRequest('Current password is incorrect');
       }
 
       // Hash the new password

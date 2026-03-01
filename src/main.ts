@@ -27,7 +27,7 @@ async function bootstrap() {
   const environment = configService.get<string>('NODE_ENV', 'development');
 
   // Enhanced Swagger configuration with module grouping
-  if (environment !== 'production') {
+  // if (environment !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Onboarding Service API')
       .setDescription('Comprehensive API documentation for user onboarding and management')
@@ -70,7 +70,7 @@ async function bootstrap() {
         .swagger-ui .scheme-container { background: #f7f7f7; padding: 15px; margin-bottom: 20px; border-radius: 4px; }
       `
     });
-  }
+  // }
 
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);

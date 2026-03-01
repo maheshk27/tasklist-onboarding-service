@@ -2,9 +2,10 @@ export interface ApiResponse<T> {
   success: boolean;
   code: string;
   message: string;
-  data: T | null;
-  errors?: ApiError[];
+  data: T;
   meta?: PaginationMeta;
+  errors?: ApiError[];
+  statusCode?: number;
 }
 
 export interface ApiError {

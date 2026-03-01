@@ -22,12 +22,12 @@ import { Roles } from '../../shared/decorators/roles.decorator';
 @ApiTags('Users')
 @Controller('users')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Get all users',
     description: 'Retrieves a list of all users in the system. Requires authentication with a valid JWT token.',
@@ -247,7 +247,6 @@ export class UserController {
   }
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
   @UseGuards(RolesGuard)
   @Roles('Admin', 'Manager')
   @ApiOperation({
