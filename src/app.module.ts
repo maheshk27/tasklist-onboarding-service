@@ -7,6 +7,8 @@ import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { RoleModule } from './modules/role/role.module';
+import { DepartmentModule } from './modules/department/department.module';
+import { PerformanceModule } from './shared/modules/performance.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { RoleModule } from './modules/role/role.module';
     AuthModule,
     UserModule,
     RoleModule,
+    DepartmentModule,
+    PerformanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

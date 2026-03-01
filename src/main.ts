@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { PerformanceInterceptor } from './shared/interceptors/performance.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -20,6 +21,9 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
   }));
+
+  // Apply performance monitoring interceptor globally
+  app.useGlobalInterceptors(new PerformanceInterceptor());
 
   // Get configuration service
   const configService = app.get(ConfigService);

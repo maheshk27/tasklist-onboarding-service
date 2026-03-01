@@ -34,6 +34,34 @@ export class DynamicResponseInterceptor implements NestInterceptor {
           responseObj.status(statusCode);
         }
         
+        // Add performance timing to response headers if available
+        const request = context.switchToHttp().getRequest();
+        if (request.requestId) {
+          const responseObj = context.switchToHttp().getResponse();
+          
+          // Fastify uses different API than Express
+          if (responseObj.setHeader) {
+            // Express compatibility
+            responseObj.setHeader('X-Request-ID', request.requestId);
+          } else if (responseObj.header) {
+            // Fastify compatibility
+            responseObj.header('X-Request-ID', request.requestId);
+          }
+          
+          // Add timing information if available (from performance interceptor)
+          if (request.startTime) {
+            const responseTime = Date.now() - request.startTime;
+            
+            if (responseObj.setHeader) {
+              // Express compatibility
+              responseObj.setHeader('X-Response-Time', `${responseTime}ms`);
+            } else if (responseObj.header) {
+              // Fastify compatibility
+              responseObj.header('X-Response-Time', `${responseTime}ms`);
+            }
+          }
+        }
+        
         // Return the response as is
         return response;
       })
