@@ -58,5 +58,20 @@ export const AuthResponseCodes = {
     code: 'TOKEN_MISSING',
     message: 'Authentication token is required',
     statusCode: HttpStatus.UNAUTHORIZED
+  },
+  REFRESH_TOKEN_SUCCESS: {
+    code: 'REFRESH_TOKEN_SUCCESS',
+    message: 'Token refreshed successfully',
+    statusCode: HttpStatus.OK
+  },
+  REFRESH_TOKEN_INVALID: {
+    code: 'REFRESH_TOKEN_INVALID',
+    message: 'Invalid refresh token',
+    statusCode: HttpStatus.UNAUTHORIZED
+  },
+  REFRESH_TOKEN_EXPIRED: {
+    code: 'REFRESH_TOKEN_EXPIRED',
+    message: 'Refresh token has expired',
+    statusCode: HttpStatus.UNAUTHORIZED
   }
 };

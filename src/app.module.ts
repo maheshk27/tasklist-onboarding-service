@@ -9,6 +9,7 @@ import { UserModule } from './modules/user/user.module';
 import { RoleModule } from './modules/role/role.module';
 import { DepartmentModule } from './modules/department/department.module';
 import { StoreModule } from './modules/store/store.module';
+import { UserStoreModule } from './modules/user-store/user-store.module';
 import { PerformanceModule } from './shared/modules/performance.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { PerformanceModule } from './shared/modules/performance.module';
     RoleModule,
     DepartmentModule,
     StoreModule,
+    UserStoreModule,
     PerformanceModule,
   ],
   controllers: [AppController],

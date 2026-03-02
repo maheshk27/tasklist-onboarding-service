@@ -82,12 +82,28 @@ export class LoginDto {
   password: string;
 }
 
+export class RefreshTokenDto {
+  @ApiProperty({
+    description: 'JWT refresh token for obtaining new access tokens',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyLCJleHAiOjE2MjY4MzUyMDJ9.refresh_token_sample',
+  })
+  @IsNotEmpty()
+  @IsString()
+  refreshToken: string;
+}
+
 export class AuthResponseDto {
   @ApiProperty({
     description: 'JWT access token for authenticated requests',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyfQ.sample_token',
   })
   accessToken: string;
+
+  @ApiProperty({
+    description: 'JWT refresh token for obtaining new access tokens',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyLCJleHAiOjE2MjY4MzUyMDJ9.refresh_token_sample',
+  })
+  refreshToken: string;
 
   @ApiProperty({
     description: 'User information',

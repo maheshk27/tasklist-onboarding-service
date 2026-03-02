@@ -60,11 +60,13 @@ export class AuthService {
 
       await this.userRepository.save(user);
 
-      // Generate JWT token
+      // Generate JWT tokens
       const accessToken = this.generateJwtToken(user);
+      const refreshToken = this.generateRefreshToken(user);
 
       const authData: AuthResponseDto = {
         accessToken,
+        refreshToken,
         user: {
           userId: user.userId,
           userName: user.userName,
@@ -104,11 +106,13 @@ export class AuthService {
         return ResponseBuilder.error(AuthResponseCodes.INVALID_CREDENTIALS);
       }
 
-      // Generate JWT token
+      // Generate JWT tokens
       const accessToken = this.generateJwtToken(user);
+      const refreshToken = this.generateRefreshToken(user);
 
       const authData: AuthResponseDto = {
         accessToken,
+        refreshToken,
         user: {
           userId: user.userId,
           userName: user.userName,
@@ -138,6 +142,62 @@ export class AuthService {
     return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', {
       expiresIn: '24h',
     });
+  }
+
+  private generateRefreshToken(user: User): string {
+    const payload = {
+      userId: user.userId,
+      userName: user.userName,
+      roleName: user.role.roleName,
+    };
+
+    return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', {
+      expiresIn: '7d',
+    });
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<ApiResponse<AuthResponseDto>> {
+    try {
+      // Verify the refresh token
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'your-secret-key') as any;
+      
+      // Find the user
+      const user = await this.userRepository.findOne({ 
+        where: { userId: decoded.userId },
+        relations: ['role']
+      });
+
+      if (!user) {
+        return ResponseBuilder.error(AuthResponseCodes.USER_NOT_FOUND);
+      }
+
+      // Generate new tokens
+      const accessToken = this.generateJwtToken(user);
+      const newRefreshToken = this.generateRefreshToken(user);
+
+      const authData: AuthResponseDto = {
+        accessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          userId: user.userId,
+          userName: user.userName,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailId: user.emailId,
+          role: {
+            roleId: user.role.roleId,
+            roleName: user.role.roleName,
+          },
+        },
+      };
+
+      return ResponseBuilder.success(authData, AuthResponseCodes.REFRESH_TOKEN_SUCCESS);
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        return ResponseBuilder.error(AuthResponseCodes.REFRESH_TOKEN_EXPIRED);
+      }
+      return ResponseBuilder.error(AuthResponseCodes.REFRESH_TOKEN_INVALID);
+    }
   }
 
   async validateUser(userId: number): Promise<User | null> {

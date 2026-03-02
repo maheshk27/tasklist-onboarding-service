@@ -1,7 +1,7 @@
 import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, AuthResponseDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, RefreshTokenDto, AuthResponseDto } from './dto/auth.dto';
 import { AuthResponseCodes } from './constants/auth-response-codes';
 import { ApiResponse as StandardApiResponse } from '../../shared/interfaces/api-response.interface';
 
@@ -59,6 +59,10 @@ export class AuthController {
             accessToken: {
               type: 'string',
               example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IlVzZXIiLCJpYXQiOjE2MjYyMzA0MDJ9.sample_token',
+            },
+            refreshToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IlVzZXIiLCJpYXQiOjE2MjYyMzA0MDIsImV4cCI6MTYyNjgzNTIwMn0.refresh_token_sample',
             },
             user: {
               type: 'object',
@@ -165,6 +169,10 @@ export class AuthController {
               type: 'string',
               example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IlVzZXIiLCJpYXQiOjE2MjYyMzA0MDJ9.sample_token',
             },
+            refreshToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IlVzZXIiLCJpYXQiOjE2MjYyMzA0MDIsImV4cCI6MTYyNjgzNTIwMn0.refresh_token_sample',
+            },
             user: {
               type: 'object',
               properties: {
@@ -213,5 +221,103 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto): Promise<StandardApiResponse<AuthResponseDto>> {
     return this.authService.login(loginDto);
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh access token using refresh token',
+    description: 'Generates a new access token and refresh token using a valid refresh token. This endpoint does not require authentication.',
+  })
+  @ApiBody({
+    type: RefreshTokenDto,
+    description: 'Refresh token for obtaining new access tokens',
+    examples: {
+      example1: {
+        summary: 'Refresh Token Example',
+        description: 'Example of refresh token request',
+        value: {
+          refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyLCJleHAiOjE2MjY4MzUyMDJ9.refresh_token_sample',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Token successfully refreshed',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+        },
+        code: {
+          type: 'string',
+          example: 'REFRESH_TOKEN_SUCCESS',
+        },
+        message: {
+          type: 'string',
+          example: 'Token refreshed successfully',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            accessToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyfQ.new_access_token',
+            },
+            refreshToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyLCJleHAiOjE2MjY4MzUyMDJ9.new_refresh_token',
+            },
+            user: {
+              type: 'object',
+              properties: {
+                userId: { type: 'number', example: 1 },
+                userName: { type: 'string', example: 'john_doe' },
+                firstName: { type: 'string', example: 'John' },
+                lastName: { type: 'string', example: 'Doe' },
+                emailId: { type: 'string', example: 'john.doe@example.com' },
+                role: {
+                  type: 'object',
+                  properties: {
+                    roleId: { type: 'number', example: 1 },
+                    roleName: { type: 'string', example: 'Admin' }
+                  }
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid or expired refresh token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'REFRESH_TOKEN_INVALID' },
+        message: { type: 'string', example: 'Invalid refresh token' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Expired refresh token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'REFRESH_TOKEN_EXPIRED' },
+        message: { type: 'string', example: 'Refresh token has expired' },
+      },
+    },
+  })
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<StandardApiResponse<AuthResponseDto>> {
+    return this.authService.refreshAccessToken(refreshTokenDto.refreshToken);
   }
 }
