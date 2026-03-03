@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { DatabaseConfig } from '../../config/database.config';
+import { AppConfig } from '../../config/app.config';
 import { 
   User, 
   Store, 
@@ -21,7 +21,7 @@ import {
     ConfigModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useClass: DatabaseConfig,
+      useClass: AppConfig,
     }),
     TypeOrmModule.forFeature([
       User,
@@ -37,7 +37,7 @@ import {
       Notification
     ]),
   ],
-  providers: [DatabaseConfig],
-  exports: [TypeOrmModule, DatabaseConfig],
+  providers: [AppConfig],
+  exports: [TypeOrmModule, AppConfig],
 })
 export class DatabaseModule {}

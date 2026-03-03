@@ -8,6 +8,7 @@ import { User, Role } from 'tasklist-manager-database-core';
 import { ResponseBuilder } from '../../shared/utils/response-builder';
 import { AuthResponseCodes } from './constants/auth-response-codes';
 import { ApiResponse } from '../../shared/interfaces/api-response.interface';
+import { AppConfig } from '../../config/app.config';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
+    private appConfig: AppConfig,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<ApiResponse<AuthResponseDto>> {
@@ -139,9 +141,13 @@ export class AuthService {
       roleName: user.role.roleName,
     };
 
-    return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: '24h',
-    });
+    const jwtConfig = this.appConfig.getJwtConfig();
+    const signOptions: jwt.SignOptions = {
+      expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn'],
+      algorithm: jwtConfig.algorithm as jwt.Algorithm,
+    };
+    
+    return jwt.sign(payload, jwtConfig.secret, signOptions);
   }
 
   private generateRefreshToken(user: User): string {
@@ -151,15 +157,20 @@ export class AuthService {
       roleName: user.role.roleName,
     };
 
-    return jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: '7d',
-    });
+    const jwtConfig = this.appConfig.getJwtConfig();
+    const signOptions: jwt.SignOptions = {
+      expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn'],
+      algorithm: jwtConfig.algorithm as jwt.Algorithm,
+    };
+    
+    return jwt.sign(payload, jwtConfig.secret, signOptions);
   }
 
   async refreshAccessToken(refreshToken: string): Promise<ApiResponse<AuthResponseDto>> {
     try {
       // Verify the refresh token
-      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'your-secret-key') as any;
+      const jwtConfig = this.appConfig.getJwtConfig();
+      const decoded = jwt.verify(refreshToken, jwtConfig.secret) as any;
       
       // Find the user
       const user = await this.userRepository.findOne({ 

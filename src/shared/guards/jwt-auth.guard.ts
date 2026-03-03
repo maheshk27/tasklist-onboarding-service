@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import { jwtConstants } from '../constants/jwt.constants';
+import { AppConfig } from '../../config/app.config';
 
 export interface JwtPayload {
   userId: number;
@@ -12,6 +12,8 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  constructor(private appConfig: AppConfig) {}
+
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
@@ -23,7 +25,8 @@ export class JwtAuthGuard implements CanActivate {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     try {
-      const payload = jwt.verify(token, jwtConstants.secret) as JwtPayload;
+      const jwtConfig = this.appConfig.getJwtConfig();
+      const payload = jwt.verify(token, jwtConfig.secret) as JwtPayload;
       
       // Attach user information to request object
       request.user = {
