@@ -2,17 +2,18 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { AppConfig } from '../../config/app.config';
-import { 
-  User, 
-  Store, 
-  TaskMaster, 
-  Task, 
-  TaskChecklist, 
-  TaskChecklistExecution,
-  TaskExecution, 
-  Role, 
-  UserDevice, 
+import {
+  Department,
+  Role,
+  Store,
+  User,
   UserStore,
+  UserDevice,
+  TaskMaster,
+  TaskChecklist,
+  TaskAssignment,
+  TaskExecution,
+  TaskChecklistExecution,
   Notification
 } from 'tasklist-manager-database-core';
 
@@ -24,16 +25,17 @@ import {
       useClass: AppConfig,
     }),
     TypeOrmModule.forFeature([
-      User,
-      Store,
-      TaskMaster,
-      Task,
-      TaskChecklist,
-      TaskChecklistExecution,
-      TaskExecution,
+      Department,
       Role,
-      UserDevice,
+      Store,
+      User,
       UserStore,
+      UserDevice,
+      TaskMaster,
+      TaskChecklist,
+      TaskAssignment,
+      TaskExecution,
+      TaskChecklistExecution,
       Notification
     ]),
   ],
