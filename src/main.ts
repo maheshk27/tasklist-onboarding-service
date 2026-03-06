@@ -15,6 +15,18 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
+  // Configure CORS
+  const corsOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:5173'];
+  
+  app.enableCors({
+    origin: corsOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 86400, // 24 hours
+  });
+
   // Enable validation pipes
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
