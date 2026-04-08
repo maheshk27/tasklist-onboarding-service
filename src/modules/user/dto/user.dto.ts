@@ -35,6 +35,7 @@ export class CreateUserDto {
     required: false,
   })
   @IsString()
+  @IsOptional()
   middleName?: string;
 
   @ApiProperty({
@@ -59,6 +60,7 @@ export class CreateUserDto {
     required: false,
   })
   @IsString()
+  @IsOptional()
   mobile?: string;
 
   @ApiProperty({

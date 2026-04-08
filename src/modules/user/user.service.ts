@@ -81,30 +81,31 @@ export class UserService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<ApiResponse<UserResponseDto>> {
-    const { userName, roleId, password, ...userData } = createUserDto;
-
     try {
       // Check if user already exists
-      const existingUser = await this.userRepository.findOne({ where: { userName } });
+      const existingUser = await this.userRepository.findOne({ 
+        where: { userName: createUserDto.userName } 
+      });
       if (existingUser) {
         return ResponseBuilder.conflict('Username already exists');
       }
 
       // Find role
-      const role = await this.roleRepository.findOne({ where: { roleId: roleId } });
+      const role = await this.roleRepository.findOne({ 
+        where: { roleId: createUserDto.roleId } 
+      });
       if (!role) {
         return ResponseBuilder.notFound('Role');
       }
 
       // Validate password length
-      if (password.length < 6) {
+      if (createUserDto.password.length < 6) {
         return ResponseBuilder.badRequest('Password must be at least 6 characters long');
       }
 
-      // Create user
+      // Create user directly from DTO
       const user = this.userRepository.create({
-        ...userData,
-        password,
+        ...createUserDto,
         roleId: role.roleId,
         role,
       });
@@ -130,6 +131,7 @@ export class UserService {
 
       return ResponseBuilder.success(userDataResponse, UserResponseCodes.USER_CREATED);
     } catch (error) {
+      console.error('Error creating user:', error);
       return ResponseBuilder.internalError('Failed to create user');
     }
   }
