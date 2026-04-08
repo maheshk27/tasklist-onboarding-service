@@ -13,6 +13,15 @@ export class CreateUserDto {
   userName: string;
 
   @ApiProperty({
+    description: 'Password for the user account',
+    example: 'SecurePass123',
+    minLength: 6,
+  })
+  @IsNotEmpty()
+  @IsString()
+  password: string;
+
+  @ApiProperty({
     description: 'User first name',
     example: 'Jane',
   })
@@ -60,6 +69,16 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsNumber()
   roleId: number;
+
+  @ApiProperty({
+    description: 'Whether the user account is active (optional)',
+    example: true,
+    required: false,
+    default: false
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class UpdateUserDto {

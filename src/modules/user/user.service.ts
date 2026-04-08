@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { User, Role } from 'tasklist-manager-database-core';
@@ -82,7 +81,7 @@ export class UserService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<ApiResponse<UserResponseDto>> {
-    const { userName, roleId, ...userData } = createUserDto;
+    const { userName, roleId, password, ...userData } = createUserDto;
 
     try {
       // Check if user already exists
@@ -97,12 +96,17 @@ export class UserService {
         return ResponseBuilder.notFound('Role');
       }
 
+      // Validate password length
+      if (password.length < 6) {
+        return ResponseBuilder.badRequest('Password must be at least 6 characters long');
+      }
+
       // Create user
       const user = this.userRepository.create({
         ...userData,
+        password,
         roleId: role.roleId,
         role,
-        isActive: true,
       });
 
       const savedUser = await this.userRepository.save(user);
@@ -242,9 +246,7 @@ export class UserService {
         return ResponseBuilder.notFound('User');
       }
 
-      // Hash the new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedPassword;
+      user.password = newPassword;
       
       await this.userRepository.save(user);
 
@@ -277,14 +279,12 @@ export class UserService {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-      if (!isCurrentPasswordValid) {
+      if (currentPassword !== user.password) {
         return ResponseBuilder.badRequest('Current password is incorrect');
       }
 
-      // Hash the new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedPassword;
+      // Store the new password
+      user.password = newPassword;
       
       await this.userRepository.save(user);
 

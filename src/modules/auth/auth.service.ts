@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { RegisterDto, LoginDto, AuthResponseDto } from './dto/auth.dto';
 import { User, Role } from 'tasklist-manager-database-core';
@@ -43,13 +42,10 @@ export class AuthService {
         return ResponseBuilder.error(AuthResponseCodes.USERNAME_EXISTS);
       }
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
       // Create user with Admin role
       const user = this.userRepository.create({
         userName,
-        password: hashedPassword,
+        password,
         firstName,
         middleName,
         lastName,
@@ -103,8 +99,7 @@ export class AuthService {
       }
 
       // Check password
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
+      if (password !== user.password) {
         return ResponseBuilder.error(AuthResponseCodes.INVALID_CREDENTIALS);
       }
 

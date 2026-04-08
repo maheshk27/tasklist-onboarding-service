@@ -262,6 +262,7 @@ export class UserController {
         description: 'Example of user creation data',
         value: {
           userName: 'new_user',
+          password: 'SecurePass123',
           firstName: 'Alice',
           middleName: 'Wonder',
           lastName: 'Smith',
@@ -269,6 +270,7 @@ export class UserController {
           mobile: '+1112223333',
           roleName: 'User',
           roleId: 2,
+          isActive: true,
         },
       },
     },
