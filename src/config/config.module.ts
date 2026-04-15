@@ -6,11 +6,7 @@ import { AppConfig } from './app.config';
   imports: [
     NestConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        '.env',
-        `.env.${process.env.NODE_ENV || 'development'}`,
-        '.env.local',
-      ],
+      envFilePath: ['.env.local', '.env.development', '.env'],
       expandVariables: true,
     }),
   ],
