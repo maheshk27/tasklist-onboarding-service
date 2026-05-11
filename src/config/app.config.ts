@@ -76,7 +76,7 @@ export class AppConfig implements TypeOrmOptionsFactory {
   getUploadConfig() {
     return {
       maxFileSize: this.configService.get<number>('MAX_FILE_SIZE', 5242880),
-      uploadPath: this.configService.get<string>('UPLOAD_PATH', './uploads'),
+      uploadPath: this.configService.get<string>('UPLOAD_PATH', '/Users/maheshkarande/uploads/rk-bazar'),
       allowedFileTypes: this.configService.get<string>('ALLOWED_FILE_TYPES', '').split(','),
     };
   }

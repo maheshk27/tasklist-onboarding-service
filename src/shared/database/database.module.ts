@@ -14,7 +14,8 @@ import {
   TaskAssignment,
   TaskExecution,
   TaskChecklistExecution,
-  Notification
+  Notification,
+  TaskEvidence
 } from 'tasklist-manager-database-core';
 
 @Module({
@@ -36,6 +37,7 @@ import {
       TaskAssignment,
       TaskExecution,
       TaskChecklistExecution,
+      TaskEvidence,
       Notification
     ]),
   ],
