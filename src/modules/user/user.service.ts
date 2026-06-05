@@ -20,7 +20,7 @@ export class UserService {
   async findAll(): Promise<ApiResponse<UserResponseDto[]>> {
     try {
       const users = await this.userRepository.find({
-        relations: ['role'],
+        relations: ['role', 'department'],
       });
 
       const userData = users.map(user => ({
@@ -32,6 +32,11 @@ export class UserService {
         emailId: user.emailId,
         mobile: user.mobile,
         isActive: user.isActive,
+        departmentId: user.departmentId,
+        department: user.department ? {
+          departmentId: user.department.departmentId,
+          departmentName: user.department.departmentName,
+        } : undefined,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         role: {

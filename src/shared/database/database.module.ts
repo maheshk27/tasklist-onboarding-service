@@ -15,7 +15,13 @@ import {
   TaskExecution,
   TaskChecklistExecution,
   Notification,
-  TaskEvidence
+  TaskEvidence,
+  TicketCategory,
+  TicketPriority,
+  TicketMaster,
+  TicketStatusHistory,
+  TicketComment,
+  TicketAttachment
 } from 'tasklist-manager-database-core';
 
 @Module({
@@ -38,7 +44,13 @@ import {
       TaskExecution,
       TaskChecklistExecution,
       TaskEvidence,
-      Notification
+      Notification,
+      TicketCategory,
+      TicketPriority,
+      TicketMaster,
+      TicketStatusHistory,
+      TicketComment,
+      TicketAttachment
     ]),
   ],
   providers: [AppConfig],

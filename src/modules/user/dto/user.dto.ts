@@ -81,6 +81,15 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'Department ID for the user (optional)',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  departmentId?: number;
 }
 
 export class UpdateUserDto {
@@ -156,6 +165,15 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'Department ID for the user (optional)',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  departmentId?: number;
 }
 
 export class UserResponseDto {
@@ -229,6 +247,35 @@ export class UserResponseDto {
   role: {
     roleId: number;
     roleName: string;
+  };
+
+  @ApiProperty({
+    description: 'Department ID of the user (optional)',
+    example: 1,
+    required: false,
+  })
+  departmentId?: number;
+
+  @ApiProperty({
+    description: 'Department information of the user (optional)',
+    type: 'object',
+    properties: {
+      departmentId: {
+        type: 'number',
+        example: 1,
+        description: 'Department ID'
+      },
+      departmentName: {
+        type: 'string',
+        example: 'Maintenance',
+        description: 'Department name'
+      }
+    },
+    required: false,
+  })
+  department?: {
+    departmentId: number;
+    departmentName: string;
   };
 
   @ApiProperty({
