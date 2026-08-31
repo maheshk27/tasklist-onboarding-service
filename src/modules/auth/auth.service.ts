@@ -3,11 +3,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as jwt from 'jsonwebtoken';
 import { RegisterDto, LoginDto, AuthResponseDto } from './dto/auth.dto';
-import { User, Role } from 'tasklist-manager-database-core';
+import { User, Role, LoginLog, LoginStatusEnum } from 'tasklist-manager-database-core';
 import { ResponseBuilder } from '../../shared/utils/response-builder';
 import { AuthResponseCodes } from './constants/auth-response-codes';
 import { ApiResponse } from '../../shared/interfaces/api-response.interface';
 import { AppConfig } from '../../config/app.config';
+
+/**
+ * Request metadata captured alongside a login attempt
+ */
+export interface LoginMeta {
+  ipAddress?: string;
+  userAgent?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -16,6 +24,8 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
+    @InjectRepository(LoginLog)
+    private loginLogRepository: Repository<LoginLog>,
     private appConfig: AppConfig,
   ) {}
 
@@ -84,7 +94,7 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<ApiResponse<AuthResponseDto>> {
+  async login(loginDto: LoginDto, meta?: LoginMeta): Promise<ApiResponse<AuthResponseDto>> {
     const { userName, password } = loginDto;
 
     try {
@@ -95,17 +105,22 @@ export class AuthService {
       });
 
       if (!user) {
+        await this.recordLoginLog(userName, null, LoginStatusEnum.FAILED, 'USER_NOT_FOUND', meta);
         return ResponseBuilder.error(AuthResponseCodes.USER_NOT_FOUND);
       }
 
       // Check password
       if (password !== user.password) {
+        await this.recordLoginLog(userName, user.userId, LoginStatusEnum.FAILED, 'INVALID_CREDENTIALS', meta);
         return ResponseBuilder.error(AuthResponseCodes.INVALID_CREDENTIALS);
       }
 
       // Generate JWT tokens
       const accessToken = this.generateJwtToken(user);
       const refreshToken = this.generateRefreshToken(user);
+
+      // Add Login Logs
+      await this.recordLoginLog(userName, user.userId, LoginStatusEnum.SUCCESS, undefined, meta);
 
       const authData: AuthResponseDto = {
         accessToken,
@@ -138,7 +153,7 @@ export class AuthService {
 
     const jwtConfig = this.appConfig.getJwtConfig();
     const signOptions: jwt.SignOptions = {
-      expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn'],
+      expiresIn: jwtConfig.accessTokenExpiresIn as jwt.SignOptions['expiresIn'],
       algorithm: jwtConfig.algorithm as jwt.Algorithm,
     };
     
@@ -154,7 +169,7 @@ export class AuthService {
 
     const jwtConfig = this.appConfig.getJwtConfig();
     const signOptions: jwt.SignOptions = {
-      expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn'],
+      expiresIn: jwtConfig.refreshTokenExpiresIn as jwt.SignOptions['expiresIn'],
       algorithm: jwtConfig.algorithm as jwt.Algorithm,
     };
     
@@ -199,10 +214,10 @@ export class AuthService {
 
       return ResponseBuilder.success(authData, AuthResponseCodes.REFRESH_TOKEN_SUCCESS);
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
+      /* if (error.name === 'TokenExpiredError') {
         return ResponseBuilder.error(AuthResponseCodes.REFRESH_TOKEN_EXPIRED);
-      }
-      return ResponseBuilder.error(AuthResponseCodes.REFRESH_TOKEN_INVALID);
+      } */
+      return ResponseBuilder.error(AuthResponseCodes.REFRESH_TOKEN_EXPIRED);
     }
   }
 
@@ -211,5 +226,31 @@ export class AuthService {
       where: { userId },
       relations: ['role']
     });
+  }
+
+  /**
+   * Record a login attempt into tbl_login_log.
+   * Logging failures are swallowed so they never interrupt the login flow.
+   */
+  private async recordLoginLog(
+    userName: string,
+    userId: number | null,
+    loginStatus: LoginStatusEnum,
+    failureReason?: string,
+    meta?: LoginMeta,
+  ): Promise<void> {
+    try {
+      const loginLog = this.loginLogRepository.create({
+        userName,
+        userId: userId ?? undefined,
+        loginStatus,
+        failureReason,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      await this.loginLogRepository.save(loginLog);
+    } catch (error) {
+      console.error('Failed to record login log:', error);
+    }
   }
 }

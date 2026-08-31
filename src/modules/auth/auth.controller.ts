@@ -1,6 +1,7 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
+import { FastifyRequest } from 'fastify';
+import { AuthService, LoginMeta } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto, AuthResponseDto } from './dto/auth.dto';
 import { AuthResponseCodes } from './constants/auth-response-codes';
 import { ApiResponse as StandardApiResponse } from '../../shared/interfaces/api-response.interface';
@@ -219,8 +220,12 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() loginDto: LoginDto): Promise<StandardApiResponse<AuthResponseDto>> {
-    return this.authService.login(loginDto);
+  async login(@Req() req: FastifyRequest, @Body() loginDto: LoginDto): Promise<StandardApiResponse<AuthResponseDto>> {
+    const loginMeta: LoginMeta = {
+      ipAddress: this.extractClientIpAddress(req),
+      userAgent: req.headers['user-agent'] as string | undefined,
+    };
+    return this.authService.login(loginDto, loginMeta);
   }
 
   @Post('refresh')
@@ -319,5 +324,20 @@ export class AuthController {
   })
   async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<StandardApiResponse<AuthResponseDto>> {
     return this.authService.refreshAccessToken(refreshTokenDto.refreshToken);
+  }
+
+  /**
+   * Extract the client IP address, honoring the X-Forwarded-For header
+   * when the request was proxied through a reverse proxy / load balancer.
+   */
+  private extractClientIpAddress(req: FastifyRequest): string | undefined {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (Array.isArray(forwardedFor)) {
+      return forwardedFor[0];
+    }
+    if (forwardedFor) {
+      return forwardedFor.split(',')[0].trim();
+    }
+    return req.ip;
   }
 }

@@ -74,9 +74,15 @@ DATABASE_URL=postgresql://user:pass@host:port/db
 ```bash
 # JWT settings
 JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRES_IN=24h
+JWT_ACCESS_EXPIRES_IN=24h
+JWT_REFRESH_EXPIRES_IN=168h
 JWT_ALGORITHM=HS256
 ```
+
+> **Note:** `JWT_ACCESS_EXPIRES_IN` controls the lifespan of access tokens and
+> `JWT_REFRESH_EXPIRES_IN` controls refresh tokens. For backward compatibility,
+> the legacy `JWT_EXPIRES_IN` variable is still honoured as a fallback when the
+> more specific variables are not set.
 
 ### Redis Configuration
 

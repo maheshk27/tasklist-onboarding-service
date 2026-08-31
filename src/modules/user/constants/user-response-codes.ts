@@ -93,5 +93,10 @@ export const UserResponseCodes = {
     code: 'PASSWORD_CHANGE_SUCCESS',
     message: 'Password changed successfully',
     statusCode: HttpStatus.OK
+  },
+  LOGIN_LOGS_RETRIEVED: {
+    code: 'LOGIN_LOGS_RETRIEVED',
+    message: 'Login logs retrieved successfully',
+    statusCode: HttpStatus.OK
   }
 };

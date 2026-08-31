@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { User, Role } from 'tasklist-manager-database-core';
+import { User, Role, LoginLog } from 'tasklist-manager-database-core';
 import { AppConfig } from '../../config/app.config';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role])],
+  imports: [TypeOrmModule.forFeature([User, Role, LoginLog])],
   controllers: [AuthController],
   providers: [AuthService, AppConfig],
   exports: [AuthService, AppConfig],

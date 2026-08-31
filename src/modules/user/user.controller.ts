@@ -6,14 +6,16 @@ import {
   Delete, 
   Param, 
   Body, 
+  Query,
   HttpCode, 
   HttpStatus,
   UseGuards,
   Req
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
+import { LoginLogQueryDto, LoginLogResponseDto } from './dto/login-log.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { ApiResponse as StandardApiResponse } from '../../shared/interfaces/api-response.interface';
 import { RolesGuard, JwtAuthGuard } from '../../shared/guards';
@@ -138,6 +140,172 @@ export class UserController {
   })
   async findAll(): Promise<StandardApiResponse<UserResponseDto[]>> {
     return this.userService.findAll();
+  }
+
+  @Get('login-logs/my')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get my recent login logs',
+    description: 'Retrieves the last 10 login log entries for the currently authenticated user, identified by the JWT access token.',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved login logs',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        code: { type: 'string', example: 'LOGIN_LOGS_RETRIEVED' },
+        message: { type: 'string', example: 'Login logs retrieved successfully' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              loginLogId: { type: 'number', example: 1 },
+              userId: { type: 'number', example: 1 },
+              userName: { type: 'string', example: 'jane_smith' },
+              ipAddress: { type: 'string', example: '192.168.1.10' },
+              userAgent: { type: 'string', example: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+              loginStatus: { type: 'string', example: 'SUCCESS' },
+              failureReason: { type: 'string', example: 'INVALID_CREDENTIALS' },
+              createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Missing or invalid JWT token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'UNAUTHORIZED' },
+        message: { type: 'string', example: 'Authentication required' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to retrieve login logs',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INTERNAL_ERROR' },
+        message: { type: 'string', example: 'Internal server error' },
+      },
+    },
+  })
+  async getMyLoginLogs(@Req() req: { user: { userId: number } }): Promise<StandardApiResponse<LoginLogResponseDto[]>> {
+    const userId = req.user.userId;
+    return this.userService.getMyLoginLogs(userId);
+  }
+
+  @Get('login-logs')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager', 'Supervisor')
+  @ApiOperation({
+    summary: 'Get login logs',
+    description: 'Retrieves all login log entries. Optionally filter by a userId and a date range. When neither fromDate nor toDate is provided, today\'s logs are returned. Only Admin, Manager and Supervisor roles can access this endpoint.',
+  })
+  @ApiQuery({ name: 'userId', type: 'number', required: false, description: 'User ID to fetch login logs for (optional). When omitted, logs are fetched for all users.' })
+  @ApiQuery({ name: 'fromDate', type: 'string', required: false, description: 'Include login logs created from this date (ISO format, e.g. 2024-05-01). When neither fromDate nor toDate is provided, today\'s logs are returned.' })
+  @ApiQuery({ name: 'toDate', type: 'string', required: false, description: 'Include login logs created up to this date (ISO format, e.g. 2024-05-31). When neither fromDate nor toDate is provided, today\'s logs are returned.' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved login logs',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        code: { type: 'string', example: 'LOGIN_LOGS_RETRIEVED' },
+        message: { type: 'string', example: 'Login logs retrieved successfully' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              loginLogId: { type: 'number', example: 1 },
+              userId: { type: 'number', example: 1 },
+              userName: { type: 'string', example: 'jane_smith' },
+              ipAddress: { type: 'string', example: '192.168.1.10' },
+              userAgent: { type: 'string', example: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+              loginStatus: { type: 'string', example: 'SUCCESS' },
+              failureReason: { type: 'string', example: 'INVALID_CREDENTIALS' },
+              createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid query parameters',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'VALIDATION_ERROR' },
+        message: { type: 'string', example: 'Validation failed' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'User not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'NOT_FOUND' },
+        message: { type: 'string', example: 'User not found' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Missing or invalid JWT token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'UNAUTHORIZED' },
+        message: { type: 'string', example: 'Authentication required' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Insufficient permissions',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'FORBIDDEN' },
+        message: { type: 'string', example: 'Access denied. Required roles: Admin, Manager, Supervisor' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to retrieve login logs',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INTERNAL_ERROR' },
+        message: { type: 'string', example: 'Internal server error' },
+      },
+    },
+  })
+  async getLoginLogs(@Query() loginLogQuery: LoginLogQueryDto): Promise<StandardApiResponse<LoginLogResponseDto[]>> {
+    return this.userService.getLoginLogs(loginLogQuery);
   }
 
   @Get(':id')

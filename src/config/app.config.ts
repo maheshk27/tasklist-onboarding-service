@@ -20,9 +20,11 @@ export class AppConfig implements TypeOrmOptionsFactory {
    * Get JWT configuration
    */
   getJwtConfig() {
+    const legacyExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '24h');
     return {
       secret: this.configService.get<string>('JWT_SECRET', 'default_secret'),
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '24h'),
+      accessTokenExpiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRES_IN', legacyExpiresIn),
+      refreshTokenExpiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', legacyExpiresIn),
       algorithm: this.configService.get<string>('JWT_ALGORITHM', 'HS256'),
     };
   }

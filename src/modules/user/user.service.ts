@@ -2,8 +2,9 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
+import { LoginLogQueryDto, LoginLogResponseDto } from './dto/login-log.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
-import { User, Role } from 'tasklist-manager-database-core';
+import { User, Role, LoginLog } from 'tasklist-manager-database-core';
 import { ResponseBuilder } from '../../shared/utils/response-builder';
 import { UserResponseCodes } from './constants/user-response-codes';
 import { ApiResponse } from '../../shared/interfaces/api-response.interface';
@@ -15,6 +16,8 @@ export class UserService {
     private userRepository: Repository<User>,
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
+    @InjectRepository(LoginLog)
+    private loginLogRepository: Repository<LoginLog>,
   ) {}
 
   async findAll(): Promise<ApiResponse<UserResponseDto[]>> {
@@ -83,6 +86,112 @@ export class UserService {
     } catch (error) {
       return ResponseBuilder.internalError('Failed to retrieve user');
     }
+  }
+
+  /**
+   * Get the last 10 login log entries for the currently authenticated user.
+   */
+  async getMyLoginLogs(userId: number): Promise<ApiResponse<LoginLogResponseDto[]>> {
+    try {
+      const logs = await this.loginLogRepository.find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      });
+
+      const loginLogs = logs.map(log => this.mapLoginLogToDto(log));
+      return ResponseBuilder.success(loginLogs, UserResponseCodes.LOGIN_LOGS_RETRIEVED);
+    } catch (error) {
+      return ResponseBuilder.internalError('Failed to retrieve login logs');
+    }
+  }
+
+  /**
+   * Get all login log entries for either a specific user (when userId is provided)
+   * or all users within an optional date range.
+   * When neither fromDate nor toDate is provided, returns today's logs only.
+   * Access is restricted to Admin, Manager and Supervisor roles.
+   */
+  async getLoginLogs(loginLogQuery: LoginLogQueryDto): Promise<ApiResponse<LoginLogResponseDto[]>> {
+    try {
+      const { userId, fromDate, toDate } = loginLogQuery;
+
+      // When no date range is provided, default to today's logs only
+      let effectiveFromDate = fromDate;
+      let effectiveToDate = toDate;
+      if (!effectiveFromDate && !effectiveToDate) {
+        const today = this.getTodayDateString();
+        effectiveFromDate = today;
+        effectiveToDate = today;
+      }
+
+      // Only validate the user's existence when a specific user is requested
+      if (userId) {
+        const user = await this.userRepository.findOne({ where: { userId } });
+        if (!user) {
+          return ResponseBuilder.notFound('User');
+        }
+      }
+
+      const queryBuilder = this.loginLogRepository.createQueryBuilder('loginLog');
+
+      if (userId) {
+        queryBuilder.where('loginLog.userId = :userId', { userId });
+      }
+
+      if (effectiveFromDate) {
+        queryBuilder.andWhere('loginLog.createdAt >= :fromDate', { fromDate: effectiveFromDate });
+      }
+      if (effectiveToDate) {
+        queryBuilder.andWhere('loginLog.createdAt <= :toDate', { toDate: this.resolveEndOfDay(effectiveToDate) });
+      }
+
+      queryBuilder.orderBy('loginLog.createdAt', 'DESC');
+
+      const logs = await queryBuilder.getMany();
+      const loginLogs = logs.map(log => this.mapLoginLogToDto(log));
+      return ResponseBuilder.success(loginLogs, UserResponseCodes.LOGIN_LOGS_RETRIEVED);
+    } catch (error) {
+      return ResponseBuilder.internalError('Failed to retrieve login logs');
+    }
+  }
+
+  /**
+   * Map a LoginLog entity to its API DTO.
+   */
+  private mapLoginLogToDto(log: LoginLog): LoginLogResponseDto {
+    return {
+      loginLogId: log.loginLogId,
+      userId: log.userId,
+      userName: log.userName,
+      ipAddress: log.ipAddress,
+      userAgent: log.userAgent,
+      loginStatus: log.loginStatus,
+      failureReason: log.failureReason,
+      createdAt: log.createdAt,
+    };
+  }
+
+  /**
+   * Expand a date-only value (YYYY-MM-DD) to the end of that day so the
+   * date range filter is inclusive of the whole day.
+   */
+  private resolveEndOfDay(value: string): string {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return `${value}T23:59:59.999`;
+    }
+    return value;
+  }
+
+  /**
+   * Get the current date as a local YYYY-MM-DD string.
+   */
+  private getTodayDateString(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   async create(createUserDto: CreateUserDto): Promise<ApiResponse<UserResponseDto>> {
