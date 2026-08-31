@@ -176,11 +176,24 @@ export class AuthService {
     return jwt.sign(payload, jwtConfig.secret, signOptions);
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<ApiResponse<AuthResponseDto>> {
+  async refreshAccessToken(refreshToken: string, meta?: LoginMeta): Promise<ApiResponse<AuthResponseDto>> {
+    // Best-effort decode (without verification) so failed attempts can still be logged
+    let decodedUserId: number | undefined;
+    let decodedUserName: string | undefined;
+    try {
+      const decodedToken = jwt.decode(refreshToken) as { userId?: number; userName?: string } | null;
+      decodedUserId = decodedToken?.userId;
+      decodedUserName = decodedToken?.userName;
+    } catch {
+      // Ignore decode errors — verification below will surface the real failure
+    }
+
     try {
       // Verify the refresh token
       const jwtConfig = this.appConfig.getJwtConfig();
       const decoded = jwt.verify(refreshToken, jwtConfig.secret) as any;
+      decodedUserId = decoded.userId;
+      decodedUserName = decoded.userName;
       
       // Find the user
       const user = await this.userRepository.findOne({ 
@@ -189,12 +202,16 @@ export class AuthService {
       });
 
       if (!user) {
+        await this.recordLoginLog(decodedUserName ?? 'Unknown', decodedUserId ?? null, LoginStatusEnum.FAILED, 'USER_NOT_FOUND', meta);
         return ResponseBuilder.error(AuthResponseCodes.USER_NOT_FOUND);
       }
 
       // Generate new tokens
       const accessToken = this.generateJwtToken(user);
       const newRefreshToken = this.generateRefreshToken(user);
+
+      // Add Login Logs
+      await this.recordLoginLog(user.userName, user.userId, LoginStatusEnum.SUCCESS, undefined, meta);
 
       const authData: AuthResponseDto = {
         accessToken,
@@ -214,6 +231,7 @@ export class AuthService {
 
       return ResponseBuilder.success(authData, AuthResponseCodes.REFRESH_TOKEN_SUCCESS);
     } catch (error) {
+      await this.recordLoginLog(decodedUserName ?? 'Unknown', decodedUserId ?? null, LoginStatusEnum.FAILED, 'REFRESH_TOKEN_EXPIRED', meta);
       /* if (error.name === 'TokenExpiredError') {
         return ResponseBuilder.error(AuthResponseCodes.REFRESH_TOKEN_EXPIRED);
       } */

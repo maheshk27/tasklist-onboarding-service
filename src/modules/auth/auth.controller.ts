@@ -322,8 +322,12 @@ export class AuthController {
       },
     },
   })
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto): Promise<StandardApiResponse<AuthResponseDto>> {
-    return this.authService.refreshAccessToken(refreshTokenDto.refreshToken);
+  async refresh(@Req() req: FastifyRequest, @Body() refreshTokenDto: RefreshTokenDto): Promise<StandardApiResponse<AuthResponseDto>> {
+    const loginMeta: LoginMeta = {
+      ipAddress: this.extractClientIpAddress(req),
+      userAgent: req.headers['user-agent'] as string | undefined,
+    };
+    return this.authService.refreshAccessToken(refreshTokenDto.refreshToken, loginMeta);
   }
 
   /**
