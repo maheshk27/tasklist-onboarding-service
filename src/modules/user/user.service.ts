@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
-import { LoginLogQueryDto, LoginLogResponseDto } from './dto/login-log.dto';
+import { LoginLogQueryDto, NonLoginUsersQueryDto, LoginLogResponseDto } from './dto/login-log.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { User, Role, LoginLog } from 'tasklist-manager-database-core';
 import { ResponseBuilder } from '../../shared/utils/response-builder';
@@ -18,7 +18,7 @@ export class UserService {
     private roleRepository: Repository<Role>,
     @InjectRepository(LoginLog)
     private loginLogRepository: Repository<LoginLog>,
-  ) {}
+  ) { }
 
   async findAll(): Promise<ApiResponse<UserResponseDto[]>> {
     try {
@@ -157,6 +157,93 @@ export class UserService {
   }
 
   /**
+   * Get users who have NOT logged in within the provided date range.
+   * A user is considered "logged in" when there is a successful login log
+   * (login_status = 'SUCCESS') within [fromDate, toDate].
+   * When neither fromDate nor toDate is provided, today's range is used.
+   * Access is restricted to Admin, Manager and Supervisor roles.
+   */
+  async getNonLoginUsers(query: NonLoginUsersQueryDto): Promise<ApiResponse<UserResponseDto[]>> {
+    try {
+      const { fromDate, toDate } = query;
+
+      // When no date range is provided, default to today's range
+      let effectiveFromDate = fromDate;
+      let effectiveToDate = toDate;
+      if (!effectiveFromDate && !effectiveToDate) {
+        const today = this.getTodayDateString();
+        effectiveFromDate = today;
+        effectiveToDate = today;
+      }
+
+      const fromDateStart = effectiveFromDate;
+      const toDateEnd = this.resolveEndOfDay(effectiveToDate);
+
+      // Users who have no successful login log in the given range.
+      // NOTE: the alias is "u" (not "user") because "user" is a reserved keyword in PostgreSQL.
+      // Only the required columns are selected instead of all columns.
+      const users = await this.userRepository
+        .createQueryBuilder('u')
+        .leftJoinAndSelect('u.role', 'role')
+        .leftJoinAndSelect('u.department', 'department')
+        .select([
+          'u.userId',
+          'u.userName',
+          'u.firstName',
+          'u.middleName',
+          'u.lastName',
+          'u.emailId',
+          'u.mobile',
+          'u.isActive',
+          'u.departmentId',
+          'department.departmentName',
+          'u.createdAt',
+          'u.updatedAt',
+          'role.roleId',
+          'role.roleName',
+        ])
+        .where(
+          `NOT EXISTS (
+            SELECT 1 FROM tbl_login_log ll
+            WHERE ll.user_id = u.user_id
+              AND ll.login_status = 'SUCCESS'
+              AND ll.created_at >= :fromDate
+              AND ll.created_at <= :toDate
+          )`
+        )
+        .setParameter('fromDate', fromDateStart)
+        .setParameter('toDate', toDateEnd)
+        .getMany();
+
+      const userData = users.map(user => ({
+        userId: user.userId,
+        userName: user.userName,
+        firstName: user.firstName,
+        middleName: user.middleName,
+        lastName: user.lastName,
+        emailId: user.emailId,
+        mobile: user.mobile,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        department: {
+          departmentId: user.departmentId,
+          departmentName: user.department ? user.department.departmentName : undefined,
+        },
+        role: {
+          roleId: user.role.roleId,
+          roleName: user.role.roleName,
+        },
+      }));
+
+      return ResponseBuilder.success(userData, UserResponseCodes.NON_LOGIN_USERS_RETRIEVED);
+    } catch (error) {
+      console.log('Error fetching non-login users:', error);
+      return ResponseBuilder.internalError('Failed to retrieve users who have not logged in');
+    }
+  }
+
+  /**
    * Map a LoginLog entity to its API DTO.
    */
   private mapLoginLogToDto(log: LoginLog): LoginLogResponseDto {
@@ -197,16 +284,16 @@ export class UserService {
   async create(createUserDto: CreateUserDto): Promise<ApiResponse<UserResponseDto>> {
     try {
       // Check if user already exists
-      const existingUser = await this.userRepository.findOne({ 
-        where: { userName: createUserDto.userName } 
+      const existingUser = await this.userRepository.findOne({
+        where: { userName: createUserDto.userName }
       });
       if (existingUser) {
         return ResponseBuilder.conflict('Username already exists');
       }
 
       // Find role
-      const role = await this.roleRepository.findOne({ 
-        where: { roleId: createUserDto.roleId } 
+      const role = await this.roleRepository.findOne({
+        where: { roleId: createUserDto.roleId }
       });
       if (!role) {
         return ResponseBuilder.notFound('Role');
@@ -266,8 +353,8 @@ export class UserService {
 
       // If role is being updated, find the new role
       if (updateUserDto.roleId && updateUserDto.roleId !== user.role.roleId) {
-        const role = await this.roleRepository.findOne({ 
-          where: { roleId: updateUserDto.roleId } 
+        const role = await this.roleRepository.findOne({
+          where: { roleId: updateUserDto.roleId }
         });
         if (role) {
           user.role = role;
@@ -363,7 +450,7 @@ export class UserService {
       }
 
       user.password = newPassword;
-      
+
       await this.userRepository.save(user);
 
       return ResponseBuilder.success(null, UserResponseCodes.PASSWORD_RESET_SUCCESS);
@@ -401,7 +488,7 @@ export class UserService {
 
       // Store the new password
       user.password = newPassword;
-      
+
       await this.userRepository.save(user);
 
       return ResponseBuilder.success(null, UserResponseCodes.PASSWORD_CHANGE_SUCCESS);

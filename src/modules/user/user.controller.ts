@@ -15,7 +15,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
-import { LoginLogQueryDto, LoginLogResponseDto } from './dto/login-log.dto';
+import { LoginLogQueryDto, NonLoginUsersQueryDto, LoginLogResponseDto } from './dto/login-log.dto';
 import { ResetPasswordDto, ChangePasswordDto } from './dto/password.dto';
 import { ApiResponse as StandardApiResponse } from '../../shared/interfaces/api-response.interface';
 import { RolesGuard, JwtAuthGuard } from '../../shared/guards';
@@ -306,6 +306,98 @@ export class UserController {
   })
   async getLoginLogs(@Query() loginLogQuery: LoginLogQueryDto): Promise<StandardApiResponse<LoginLogResponseDto[]>> {
     return this.userService.getLoginLogs(loginLogQuery);
+  }
+
+  @Get('non-login-users')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager', 'Supervisor')
+  @ApiOperation({
+    summary: 'Get users who have not logged in',
+    description: 'Retrieves all users who have not logged in within the given fromDate-toDate range. A user is considered "logged in" when they have a successful login log in the range. No userId is required. When neither fromDate nor toDate is provided, today\'s range is used. Only Admin, Manager and Supervisor roles can access this endpoint.',
+  })
+  @ApiQuery({ name: 'fromDate', type: 'string', required: false, description: 'Fetch users who have not logged in from this date (ISO format, e.g. 2024-05-01). When neither fromDate nor toDate is provided, today\'s range is used.' })
+  @ApiQuery({ name: 'toDate', type: 'string', required: false, description: 'Fetch users who have not logged in up to this date (ISO format, e.g. 2024-05-31). When neither fromDate nor toDate is provided, today\'s range is used.' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Successfully retrieved users who have not logged in',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        code: { type: 'string', example: 'NON_LOGIN_USERS_RETRIEVED' },
+        message: { type: 'string', example: 'Users who have not logged in retrieved successfully' },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              userId: { type: 'number', example: 5 },
+              userName: { type: 'string', example: 'alice_w' },
+              firstName: { type: 'string', example: 'Alice' },
+              middleName: { type: 'string', example: 'Wonder' },
+              lastName: { type: 'string', example: 'Wang' },
+              emailId: { type: 'string', example: 'alice.wang@example.com' },
+              mobile: { type: 'string', example: '+1234567890' },
+              isActive: { type: 'boolean', example: true },
+              createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
+              updatedAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid query parameters',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'VALIDATION_ERROR' },
+        message: { type: 'string', example: 'Validation failed' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Missing or invalid JWT token',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'UNAUTHORIZED' },
+        message: { type: 'string', example: 'Authentication required' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Insufficient permissions',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'FORBIDDEN' },
+        message: { type: 'string', example: 'Access denied. Required roles: Admin, Manager, Supervisor' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: 'Failed to retrieve users who have not logged in',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INTERNAL_ERROR' },
+        message: { type: 'string', example: 'Internal server error' },
+      },
+    },
+  })
+  async getNonLoginUsers(@Query() nonLoginQuery: NonLoginUsersQueryDto): Promise<StandardApiResponse<UserResponseDto[]>> {
+    return this.userService.getNonLoginUsers(nonLoginQuery);
   }
 
   @Get(':id')

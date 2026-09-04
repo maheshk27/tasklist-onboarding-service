@@ -98,5 +98,10 @@ export const UserResponseCodes = {
     code: 'LOGIN_LOGS_RETRIEVED',
     message: 'Login logs retrieved successfully',
     statusCode: HttpStatus.OK
+  },
+  NON_LOGIN_USERS_RETRIEVED: {
+    code: 'NON_LOGIN_USERS_RETRIEVED',
+    message: 'Users who have not logged in retrieved successfully',
+    statusCode: HttpStatus.OK
   }
 };

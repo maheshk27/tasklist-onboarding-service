@@ -34,6 +34,28 @@ export class LoginLogQueryDto {
 }
 
 /**
+ * Query parameters for fetching users who have NOT logged in within a date range.
+ * Unlike LoginLogQueryDto this intentionally has no userId field.
+ */
+export class NonLoginUsersQueryDto {
+  @ApiPropertyOptional({
+    example: '2024-05-01',
+    description: 'Fetch users who have not logged in from this date (ISO format). When neither fromDate nor toDate is provided, today\'s range is used.',
+  })
+  @IsOptional()
+  @IsDateString()
+  fromDate?: string;
+
+  @ApiPropertyOptional({
+    example: '2024-05-31',
+    description: 'Fetch users who have not logged in up to this date (ISO format). When neither fromDate nor toDate is provided, today\'s range is used.',
+  })
+  @IsOptional()
+  @IsDateString()
+  toDate?: string;
+}
+
+/**
  * Login log entry returned to consumers.
  */
 export class LoginLogResponseDto {
