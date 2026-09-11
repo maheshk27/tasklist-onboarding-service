@@ -1,14 +1,15 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { extractUserIdFromToken } from '../utils/jwt-helper';
 
 interface PerformanceLogData {
   requestId: string;
+  userId: number | null;
   method: string;
   url: string;
   statusCode: number;
   responseTime: number;
-  userAgent?: string;
   ip?: string;
   timestamp: string;
 }
@@ -20,21 +21,13 @@ export class PerformanceInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const startTime = Date.now();
     const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
     
-    // Generate or get request ID
-    const requestId = this.generateRequestId();
+    // Generate or reuse request ID (set by logging middleware for correlation)
+    const requestId = request.requestId || this.generateRequestId();
     request.requestId = requestId;
 
-    // Add request ID to response headers for client correlation
-    // Fastify uses different API than Express
-    if (response.setHeader) {
-      // Express compatibility
-      response.setHeader('X-Request-ID', requestId);
-    } else if (response.header) {
-      // Fastify compatibility
-      response.header('X-Request-ID', requestId);
-    }
+    // Extract userId from access token for logging
+    const userId = extractUserIdFromToken(request);
 
     return next.handle().pipe(
       tap({
@@ -42,9 +35,10 @@ export class PerformanceInterceptor implements NestInterceptor {
           const responseTime = Date.now() - startTime;
           const logData: PerformanceLogData = {
             requestId,
+            userId,
             method: request.method,
             url: request.url,
-            statusCode: response.statusCode || response.status,
+            statusCode: context.switchToHttp().getResponse().statusCode || context.switchToHttp().getResponse().status,
             responseTime,
             ip: request.ip || request.connection?.remoteAddress,
             timestamp: new Date().toISOString(),
@@ -56,6 +50,7 @@ export class PerformanceInterceptor implements NestInterceptor {
           const responseTime = Date.now() - startTime;
           const logData: PerformanceLogData = {
             requestId,
+            userId,
             method: request.method,
             url: request.url,
             statusCode: error.status || 500,
@@ -75,7 +70,7 @@ export class PerformanceInterceptor implements NestInterceptor {
   }
 
   private logPerformance(logData: PerformanceLogData, isError = false, errorMessage?: string): void {
-    const { requestId, method, url, statusCode, responseTime, userAgent, ip, timestamp } = logData;
+    const { requestId, userId, method, url, statusCode, responseTime, ip, timestamp } = logData;
     
     // Determine log level based on response time
     let logLevel: 'log' | 'warn' | 'error' = 'log';
@@ -93,11 +88,12 @@ export class PerformanceInterceptor implements NestInterceptor {
     }
 
     const logMessage = isError 
-      ? `Performance Alert [${performanceLevel}] - ${method} ${url} - ${statusCode} - ${responseTime}ms - ${errorMessage}`
-      : `Performance [${performanceLevel}] - ${method} ${url} - ${statusCode} - ${responseTime}ms`;
+      ? `Performance Alert [${performanceLevel}] | ${method} | ${url} | ${statusCode} | ${responseTime}ms | userId:${userId ?? 'anonymous'} | ${errorMessage}`
+      : `Performance [${performanceLevel}] | ${method} | ${url} | ${statusCode} | ${responseTime}ms | userId:${userId ?? 'anonymous'}`;
 
     const logContext = {
       requestId,
+      userId,
       method,
       url,
       statusCode,
@@ -116,8 +112,6 @@ export class PerformanceInterceptor implements NestInterceptor {
       case 'warn':
         this.logger.warn(logMessage, JSON.stringify(logContext));
         break;
-      // default:
-      //   this.logger.log(logMessage, JSON.stringify(logContext));
     }
 
     // Log slow requests to a separate file or monitoring system

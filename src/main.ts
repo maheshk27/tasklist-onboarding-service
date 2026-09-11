@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { PerformanceInterceptor } from './shared/interceptors/performance.interceptor';
+import { HttpRequestInterceptor } from './shared/interceptors/http-request.interceptor';
 import { AppConfig } from './config/app.config';
 
 async function bootstrap() {
@@ -34,7 +35,11 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // Apply performance monitoring interceptor globally
+  // Register HTTP request logging interceptor (generates requestId, logs incoming/request/response)
+  // This MUST be registered before PerformanceInterceptor so it can reuse the same requestId
+  app.useGlobalInterceptors(new HttpRequestInterceptor());
+  
+  // Apply performance monitoring interceptor globally (reuses requestId from HttpRequestInterceptor)
   app.useGlobalInterceptors(new PerformanceInterceptor());
 
   // Get configuration service
