@@ -11,6 +11,16 @@ export class CreateRoleDto {
   @IsNotEmpty()
   @IsString()
   roleName: string;
+
+  @ApiProperty({
+    description: 'Role ID this role reports to (parent role within mst_role). Leave empty for a top-level role',
+    example: 1,
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsNumber()
+  reportingTo?: number;
 }
 
 export class UpdateRoleDto {
@@ -22,6 +32,16 @@ export class UpdateRoleDto {
   @IsOptional()
   @IsString()
   roleName?: string;
+
+  @ApiProperty({
+    description: 'Updated parent role ID this role reports to. Send null to remove the parent (top-level role)',
+    example: 1,
+    required: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsNumber()
+  reportingTo?: number | null;
 }
 
 export class RoleResponseDto {
@@ -36,6 +56,14 @@ export class RoleResponseDto {
     example: 'Admin',
   })
   roleName: string;
+
+  @ApiProperty({
+    description: 'Role ID this role reports to (parent role), null for a top-level role',
+    example: 1,
+    required: false,
+    nullable: true,
+  })
+  reportingTo?: number | null;
 
   @ApiProperty({
     description: 'Date and time when the role record was created',

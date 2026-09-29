@@ -21,6 +21,7 @@ export class RoleService {
       const roleData = roles.map(role => ({
         roleId: role.roleId,
         roleName: role.roleName,
+        reportingTo: role.reportingTo ?? null,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
       }));
@@ -44,6 +45,7 @@ export class RoleService {
       const roleData: RoleResponseDto = {
         roleId: role.roleId,
         roleName: role.roleName,
+        reportingTo: role.reportingTo ?? null,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
       };
@@ -56,7 +58,7 @@ export class RoleService {
 
   async create(createRoleDto: CreateRoleDto): Promise<ApiResponse<RoleResponseDto>> {
     try {
-      const { roleName } = createRoleDto;
+      const { roleName, reportingTo } = createRoleDto;
 
       // Check if role name already exists (unique constraint)
       const existingRole = await this.roleRepository.findOne({ 
@@ -67,6 +69,17 @@ export class RoleService {
         return ResponseBuilder.error(RoleResponseCodes.ROLE_NAME_EXISTS);
       }
 
+      // Validate the parent role exists when reportingTo is provided (self join to mst_role)
+      if (reportingTo !== undefined && reportingTo !== null) {
+        const parentRole = await this.roleRepository.findOne({
+          where: { roleId: reportingTo }
+        });
+
+        if (!parentRole) {
+          return ResponseBuilder.error(RoleResponseCodes.ROLE_REPORTING_TO_NOT_FOUND);
+        }
+      }
+
       // Create role
       const role = this.roleRepository.create(createRoleDto);
       const savedRole = await this.roleRepository.save(role);
@@ -74,6 +87,7 @@ export class RoleService {
       const roleData: RoleResponseDto = {
         roleId: savedRole.roleId,
         roleName: savedRole.roleName,
+        reportingTo: savedRole.reportingTo ?? null,
         createdAt: savedRole.createdAt,
         updatedAt: savedRole.updatedAt,
       };
@@ -109,6 +123,43 @@ export class RoleService {
         }
       }
 
+      // Validate reportingTo when provided (self join to mst_role)
+      if (updateRoleDto.reportingTo !== undefined && updateRoleDto.reportingTo !== null) {
+        // A role cannot report to itself
+        if (updateRoleDto.reportingTo === roleId) {
+          return ResponseBuilder.error(RoleResponseCodes.ROLE_SELF_REPORTING);
+        }
+
+        // The parent role must exist in mst_role
+        const parentRole = await this.roleRepository.findOne({
+          where: { roleId: updateRoleDto.reportingTo }
+        });
+
+        if (!parentRole) {
+          return ResponseBuilder.error(RoleResponseCodes.ROLE_REPORTING_TO_NOT_FOUND);
+        }
+
+        // Guard against circular hierarchy (walk up the reporting chain)
+        let ancestor: Role | null = parentRole;
+        const visited = new Set<number>([roleId]);
+
+        while (ancestor) {
+          if (visited.has(ancestor.roleId)) {
+            return ResponseBuilder.error(RoleResponseCodes.ROLE_REPORTING_CYCLE);
+          }
+
+          visited.add(ancestor.roleId);
+
+          if (ancestor.reportingTo === null || ancestor.reportingTo === undefined) {
+            break;
+          }
+
+          ancestor = await this.roleRepository.findOne({
+            where: { roleId: ancestor.reportingTo }
+          });
+        }
+      }
+
       // Update role data
       Object.assign(role, updateRoleDto);
 
@@ -117,6 +168,7 @@ export class RoleService {
       const roleData: RoleResponseDto = {
         roleId: updatedRole.roleId,
         roleName: updatedRole.roleName,
+        reportingTo: updatedRole.reportingTo ?? null,
         createdAt: updatedRole.createdAt,
         updatedAt: updatedRole.updatedAt,
       };

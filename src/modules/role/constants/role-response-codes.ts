@@ -48,5 +48,20 @@ export const RoleResponseCodes = {
     code: 'ROLE_NAME_TOO_LONG',
     message: 'Role name cannot exceed 50 characters',
     statusCode: HttpStatus.BAD_REQUEST
+  },
+  ROLE_REPORTING_TO_NOT_FOUND: {
+    code: 'ROLE_REPORTING_TO_NOT_FOUND',
+    message: 'Reporting role not found',
+    statusCode: HttpStatus.NOT_FOUND
+  },
+  ROLE_SELF_REPORTING: {
+    code: 'ROLE_SELF_REPORTING',
+    message: 'Role cannot report to itself',
+    statusCode: HttpStatus.BAD_REQUEST
+  },
+  ROLE_REPORTING_CYCLE: {
+    code: 'ROLE_REPORTING_CYCLE',
+    message: 'Reporting to this role would create a circular hierarchy',
+    statusCode: HttpStatus.BAD_REQUEST
   }
 };

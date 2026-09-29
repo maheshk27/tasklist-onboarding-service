@@ -17,6 +17,12 @@ export interface LoginMeta {
   userAgent?: string;
 }
 
+/**
+ * Roles allowed to sign in to the admin portal through `POST /auth/admin-login`.
+ * Add or remove role names here to change who can access the admin portal.
+ */
+export const ADMIN_PORTAL_ALLOWED_ROLES = ['Admin', 'Manager', 'Supervisor'];
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -95,6 +101,28 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto, meta?: LoginMeta): Promise<ApiResponse<AuthResponseDto>> {
+    return this.authenticate(loginDto, meta);
+  }
+
+  /**
+   * Authenticate a user for the admin portal.
+   * Mirrors `login` but only allows the roles listed in ADMIN_PORTAL_ALLOWED_ROLES
+   * (Admin, Manager, Supervisor) to sign in.
+   */
+  async adminLogin(loginDto: LoginDto, meta?: LoginMeta): Promise<ApiResponse<AuthResponseDto>> {
+    return this.authenticate(loginDto, meta, ADMIN_PORTAL_ALLOWED_ROLES);
+  }
+
+  /**
+   * Shared authentication flow used by both `login` and `adminLogin`.
+   * When `allowedRoles` is provided, the authenticated user's role must match one
+   * of the entries (case-insensitive) or access is denied.
+   */
+  private async authenticate(
+    loginDto: LoginDto,
+    meta?: LoginMeta,
+    allowedRoles?: string[],
+  ): Promise<ApiResponse<AuthResponseDto>> {
     const { userName, password } = loginDto;
 
     try {
@@ -113,6 +141,15 @@ export class AuthService {
       if (password !== user.password) {
         await this.recordLoginLog(userName, user.userId, LoginStatusEnum.FAILED, 'INVALID_CREDENTIALS', meta);
         return ResponseBuilder.error(AuthResponseCodes.INVALID_CREDENTIALS);
+      }
+
+      // Check portal access when the caller restricts the allowed roles
+      if (allowedRoles && !this.isRoleAllowed(user, allowedRoles)) {
+        await this.recordLoginLog(userName, user.userId, LoginStatusEnum.FAILED, 'ADMIN_LOGIN_FORBIDDEN', meta);
+        return ResponseBuilder.error({
+          ...AuthResponseCodes.ADMIN_LOGIN_FORBIDDEN,
+          message: `Access denied. Only the following roles can access the admin portal: ${allowedRoles.join(', ')}`,
+        });
       }
 
       // Generate JWT tokens
@@ -142,6 +179,17 @@ export class AuthService {
     } catch (error) {
       return ResponseBuilder.internalError('Login failed');
     }
+  }
+
+  /**
+   * Case-insensitive check that the user's role is part of the allowed roles list.
+   */
+  private isRoleAllowed(user: User, allowedRoles: string[]): boolean {
+    const roleName = user.role?.roleName?.trim().toLowerCase();
+    if (!roleName) {
+      return false;
+    }
+    return allowedRoles.some((allowedRole) => allowedRole.trim().toLowerCase() === roleName);
   }
 
   private generateJwtToken(user: User): string {

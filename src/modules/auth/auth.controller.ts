@@ -3,7 +3,6 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { FastifyRequest } from 'fastify';
 import { AuthService, LoginMeta } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto, AuthResponseDto } from './dto/auth.dto';
-import { AuthResponseCodes } from './constants/auth-response-codes';
 import { ApiResponse as StandardApiResponse } from '../../shared/interfaces/api-response.interface';
 
 @ApiTags('Auth')
@@ -226,6 +225,125 @@ export class AuthController {
       userAgent: req.headers['user-agent'] as string | undefined,
     };
     return this.authService.login(loginDto, loginMeta);
+  }
+
+  @Post('admin-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Authenticate admin portal user and get access token',
+    description:
+      'Authenticates a user with username and password and returns a JWT access token. Only users with an Admin, Manager or Supervisor role are allowed to sign in. This endpoint does not require authentication.',
+  })
+  @ApiBody({
+    type: LoginDto,
+    description: 'Admin portal login credentials',
+    examples: {
+      example1: {
+        summary: 'Admin Login Example',
+        description: 'Example of admin portal login credentials',
+        value: {
+          userName: 'john_doe',
+          password: 'password123',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User successfully authenticated',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+        },
+        code: {
+          type: 'string',
+          example: 'LOGIN_SUCCESS',
+        },
+        message: {
+          type: 'string',
+          example: 'Login successful',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            accessToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyfQ.sample_token',
+            },
+            refreshToken: {
+              type: 'string',
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJOYW1lIjoiam9obl9kb2UiLCJyb2xlTmFtZSI6IkFkbWluIiwiaWF0IjoxNjI2MjMwNDAyLCJleHAiOjE2MjY4MzUyMDJ9.refresh_token_sample',
+            },
+            user: {
+              type: 'object',
+              properties: {
+                userId: { type: 'number', example: 1 },
+                userName: { type: 'string', example: 'john_doe' },
+                firstName: { type: 'string', example: 'John' },
+                lastName: { type: 'string', example: 'Doe' },
+                emailId: { type: 'string', example: 'john.doe@example.com' },
+                role: {
+                  type: 'object',
+                  properties: {
+                    roleId: { type: 'number', example: 1 },
+                    roleName: { type: 'string', example: 'Admin' }
+                  }
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'User role is not allowed to access the admin portal',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'ADMIN_LOGIN_FORBIDDEN' },
+        message: {
+          type: 'string',
+          example: 'Access denied. Only the following roles can access the admin portal: Admin, Manager, Supervisor',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Invalid credentials',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'INVALID_CREDENTIALS' },
+        message: { type: 'string', example: 'Invalid username or password' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'User not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'USER_NOT_FOUND' },
+        message: { type: 'string', example: 'User details not available' },
+      },
+    },
+  })
+  async adminLogin(@Req() req: FastifyRequest, @Body() loginDto: LoginDto): Promise<StandardApiResponse<AuthResponseDto>> {
+    const loginMeta: LoginMeta = {
+      ipAddress: this.extractClientIpAddress(req),
+      userAgent: req.headers['user-agent'] as string | undefined,
+    };
+    return this.authService.adminLogin(loginDto, loginMeta);
   }
 
   @Post('refresh')

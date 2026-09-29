@@ -58,6 +58,7 @@ export class RoleController {
             properties: {
               roleId: { type: 'number', example: 1 },
               roleName: { type: 'string', example: 'Admin' },
+              reportingTo: { type: 'number', nullable: true, example: null },
               createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
               updatedAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
             },
@@ -66,12 +67,14 @@ export class RoleController {
             {
               roleId: 1,
               roleName: 'Admin',
+              reportingTo: null,
               createdAt: '2023-07-15T10:30:00.000Z',
               updatedAt: '2023-07-15T10:30:00.000Z',
             },
             {
               roleId: 2,
               roleName: 'User',
+              reportingTo: 1,
               createdAt: '2023-07-15T10:30:00.000Z',
               updatedAt: '2023-07-15T10:30:00.000Z',
             },
@@ -143,12 +146,14 @@ export class RoleController {
           properties: {
             roleId: { type: 'number', example: 1 },
             roleName: { type: 'string', example: 'Admin' },
+            reportingTo: { type: 'number', nullable: true, example: null },
             createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
             updatedAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
           },
           example: {
             roleId: 1,
             roleName: 'Admin',
+            reportingTo: null,
             createdAt: '2023-07-15T10:30:00.000Z',
             updatedAt: '2023-07-15T10:30:00.000Z',
           },
@@ -201,7 +206,7 @@ export class RoleController {
   @Roles('Admin', 'Manager')
   @ApiOperation({
     summary: 'Create a new role',
-    description: 'Creates a new role with the provided name. Requires authentication with a valid JWT token and Admin/Manager role.',
+    description: 'Creates a new role with the provided name and optional parent role for reporting. Requires authentication with a valid JWT token and Admin/Manager role.',
   })
   @ApiBody({
     type: CreateRoleDto,
@@ -212,6 +217,7 @@ export class RoleController {
         description: 'Example of role creation data',
         value: {
           roleName: 'Supervisor',
+          reportingTo: 1,
         },
       },
     },
@@ -239,12 +245,14 @@ export class RoleController {
           properties: {
             roleId: { type: 'number', example: 3 },
             roleName: { type: 'string', example: 'Supervisor' },
+            reportingTo: { type: 'number', nullable: true, example: 1 },
             createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
             updatedAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
           },
           example: {
             roleId: 3,
             roleName: 'Supervisor',
+            reportingTo: 1,
             createdAt: '2023-07-15T10:30:00.000Z',
             updatedAt: '2023-07-15T10:30:00.000Z',
           },
@@ -283,6 +291,18 @@ export class RoleController {
         success: { type: 'boolean', example: false },
         code: { type: 'string', example: 'ROLE_NAME_EXISTS' },
         message: { type: 'string', example: 'Role name already exists' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Reporting role specified in reportingTo not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'ROLE_REPORTING_TO_NOT_FOUND' },
+        message: { type: 'string', example: 'Reporting role not found' },
       },
     },
   })
@@ -332,7 +352,7 @@ export class RoleController {
   @Roles('Admin', 'Manager')
   @ApiOperation({
     summary: 'Update role by ID',
-    description: 'Updates an existing role with the provided information. Requires authentication with a valid JWT token and Admin/Manager role.',
+    description: 'Updates an existing role with the provided information, including its optional parent role for reporting. Requires authentication with a valid JWT token and Admin/Manager role.',
   })
   @ApiParam({
     name: 'id',
@@ -349,6 +369,7 @@ export class RoleController {
         description: 'Example of role update data',
         value: {
           roleName: 'Administrator',
+          reportingTo: 1,
         },
       },
     },
@@ -376,12 +397,14 @@ export class RoleController {
           properties: {
             roleId: { type: 'number', example: 1 },
             roleName: { type: 'string', example: 'Administrator' },
+            reportingTo: { type: 'number', nullable: true, example: null },
             createdAt: { type: 'string', format: 'date-time', example: '2023-07-15T10:30:00.000Z' },
             updatedAt: { type: 'string', format: 'date-time', example: '2023-07-15T11:00:00.000Z' },
           },
           example: {
             roleId: 1,
             roleName: 'Administrator',
+            reportingTo: null,
             createdAt: '2023-07-15T10:30:00.000Z',
             updatedAt: '2023-07-15T11:00:00.000Z',
           },
@@ -391,13 +414,25 @@ export class RoleController {
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'Role not found',
+    description: 'Role or reporting role specified in reportingTo not found',
     schema: {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: false },
         code: { type: 'string', example: 'ROLE_NOT_FOUND' },
         message: { type: 'string', example: 'Role details not available' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid reportingTo (self reporting or circular hierarchy)',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        code: { type: 'string', example: 'ROLE_SELF_REPORTING' },
+        message: { type: 'string', example: 'Role cannot report to itself' },
       },
     },
   })

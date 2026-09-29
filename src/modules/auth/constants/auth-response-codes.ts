@@ -29,6 +29,11 @@ export const AuthResponseCodes = {
     message: 'Login successful',
     statusCode: HttpStatus.OK
   },
+  ADMIN_LOGIN_FORBIDDEN: {
+    code: 'ADMIN_LOGIN_FORBIDDEN',
+    message: 'Access denied. Only the following roles can access the admin portal: Admin, Manager, Supervisor',
+    statusCode: HttpStatus.FORBIDDEN
+  },
   ADMIN_ROLE_NOT_FOUND: {
     code: 'ADMIN_ROLE_NOT_FOUND',
     message: 'Admin role not found in database',
