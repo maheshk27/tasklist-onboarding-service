@@ -54,6 +54,10 @@ async function bootstrap() {
     .addTag('Auth', 'Authentication and user registration (No authorization required)')
     .addTag('Users', 'User management operations (Authorization required)')
     .addTag('Health', 'System health and status (No authorization required)')
+    .addTag('Menus', 'Menu master CRUD and navigation tree (Authorization required)')
+    .addTag('Role Menu Mappings', 'Role to menu navigation mappings (Authorization required)')
+    .addTag('Permissions', 'Permission catalog CRUD (Authorization required)')
+    .addTag('Role Permissions', 'Role to permission matrix (Authorization required)')
     .addBearerAuth(
       {
         type: 'http',

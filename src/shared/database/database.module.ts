@@ -22,7 +22,11 @@ import {
   TicketMaster,
   TicketStatusHistory,
   TicketComment,
-  TicketAttachment
+  TicketAttachment,
+  Menu,
+  RoleMenu,
+  Permission,
+  RolePermission
 } from 'tasklist-manager-database-core';
 
 @Module({
@@ -52,7 +56,11 @@ import {
       TicketMaster,
       TicketStatusHistory,
       TicketComment,
-      TicketAttachment
+      TicketAttachment,
+      Menu,
+      RoleMenu,
+      Permission,
+      RolePermission
     ]),
   ],
   providers: [AppConfig],
