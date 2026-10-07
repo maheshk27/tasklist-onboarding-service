@@ -58,7 +58,7 @@ export class UserService {
     try {
       const user = await this.userRepository.findOne({
         where: { userId },
-        relations: ['role'],
+        relations: ['role', 'department'],
       });
 
       if (!user) {
@@ -73,13 +73,18 @@ export class UserService {
         lastName: user.lastName,
         emailId: user.emailId,
         mobile: user.mobile,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
         role: {
           roleId: user.role.roleId,
           roleName: user.role.roleName,
         },
+        departmentId: user.departmentId,
+        department: user.department ? {
+          departmentId: user.department.departmentId,
+          departmentName: user.department.departmentName,
+        } : undefined,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       };
 
       return ResponseBuilder.success(userData, UserResponseCodes.USER_RETRIEVED);
